@@ -8,14 +8,8 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
 
   <style>
-    /* Mobielvriendelijke dropdowns */
-    select {
-      font-size: 1.1rem;
-      padding: 6px;
-    }
-    .card {
-      transition: background-color 0.2s;
-    }
+    select { font-size: 1.1rem; padding: 6px; }
+    .card { transition: background-color 0.2s; }
   </style>
 </head>
 <body>
@@ -27,37 +21,63 @@
   </nav>
 
   <div class="container" style="margin-top: 20px;">
+
+    <!-- Toggle voor afgeronde taken -->
+    <div class="row">
+      <div class="col s12">
+        <label>
+          <input type="checkbox" id="showAllTasks" />
+          <span>Toon ook afgeronde taken (OK)</span>
+        </label>
+      </div>
+    </div>
+
     <div class="row" id="tasks-container">
       <!-- Taken worden via JS toegevoegd -->
     </div>
+
   </div>
 
   <script src="js/materialize.js"></script>
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbw7vdNL-mtGsR8pthDwJI_s_6ItncNNOts4PDJ1gYxdSTiiVPmp3kAKKifEtjfDzWgDNQ/exec";
 
-    // ✅ Taken ophalen bij opstart
+    let allTasks = []; // alle taken opslaan
+
+    // ✅ Haal taken op bij pagina-opstart
     async function fetchTasks() {
       const res = await fetch(API_URL);
       const tasks = await res.json();
-
-      // ✅ Filter: toon alleen taken waarvan status NIET "OK" is
-      const openTasks = tasks.filter(t => t.status !== "OK");
-
-      renderTasks(openTasks);
+      allTasks = tasks;
+      renderTasks();
     }
 
-    // ✅ Render alle kaarten
-    function renderTasks(tasks) {
+    // ✅ Format date DD/MM/YYYY
+    function formatDateDDMMYYYY(v) {
+      if (!v) return "";
+      const maybeDate = new Date(v);
+      if (!isNaN(maybeDate)) {
+        const day = String(maybeDate.getDate()).padStart(2, "0");
+        const month = String(maybeDate.getMonth() + 1).padStart(2, "0");
+        const year = maybeDate.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+      return String(v);
+    }
+
+    // ✅ Render kaarten
+    function renderTasks() {
       const container = document.getElementById("tasks-container");
       container.innerHTML = "";
 
-      tasks.forEach(task => {
+      const showAll = document.getElementById("showAllTasks").checked;
+      const tasksToRender = showAll ? allTasks : allTasks.filter(t => t.status !== "OK");
+
+      tasksToRender.forEach(task => {
         const col = document.createElement("div");
         col.className = "col s12";
 
-        // Kaartkleur bepalen
-        let colorClass = "red lighten-4";   // default NOK
+        let colorClass = "red lighten-4";
         if (task.status === "Bezig") colorClass = "yellow lighten-4";
         if (task.status === "OK") colorClass = "green lighten-4";
 
@@ -65,8 +85,7 @@
           <div class="card ${colorClass}">
             <div class="card-content">
               <span class="card-title">${task.omschrijving}</span>
-
-              <p><strong>Deadline:</strong> ${task.deadline}</p>
+              <p><strong>Deadline:</strong> ${formatDateDDMMYYYY(task.deadline)}</p>
 
               <p>
                 <label>
@@ -95,7 +114,6 @@
 
               <p><strong>Verantwoordelijke:</strong> ${task.verantwoordelijke}</p>
               <p><strong>Task ID:</strong> ${task.id}</p>
-
               ${task.link ? `<p><a href="${task.link}" target="_blank">Document</a></p>` : ""}
             </div>
           </div>
@@ -107,10 +125,9 @@
       addEventListeners();
     }
 
-    // ✅ Event listeners toevoegen
+    // ✅ Event listeners
     function addEventListeners() {
-
-      // Belangrijk checkbox
+      // Belangrijk
       document.querySelectorAll(".belangrijk").forEach(el => {
         el.addEventListener("change", e => {
           const id = e.target.dataset.id;
@@ -119,7 +136,7 @@
         });
       });
 
-      // Prioriteit dropdown
+      // Prioriteit
       document.querySelectorAll(".prioriteit").forEach(el => {
         el.addEventListener("change", e => {
           const id = e.target.dataset.id;
@@ -128,7 +145,7 @@
         });
       });
 
-      // Status dropdown
+      // Status
       document.querySelectorAll(".status").forEach(el => {
         el.addEventListener("change", e => {
           const id = e.target.dataset.id;
@@ -136,10 +153,9 @@
 
           updateTask(id, { status: value });
 
-          // ✅ Kaartkleur onmiddellijk aanpassen
+          // Kaartkleur direct aanpassen
           const card = e.target.closest(".card");
           card.classList.remove("red", "yellow", "green", "lighten-4");
-
           if (value === "NOK") card.classList.add("red", "lighten-4");
           if (value === "Bezig") card.classList.add("yellow", "lighten-4");
           if (value === "OK") card.classList.add("green", "lighten-4");
@@ -147,19 +163,22 @@
       });
     }
 
-    // ✅ Nieuwe updateTask: geen refresh meer!
+    // ✅ Update naar backend
     async function updateTask(id, changes) {
       changes.id = id;
-
       await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify(changes)
       });
-
-      // GEEN fetchTasks() meer hier → geen terugspringen!
+      // Geen fetchTasks() meer → geen terugspringen
     }
 
-    // ✅ Start de pagina
+    // ✅ Toggle voor OK-taken
+    document.getElementById("showAllTasks").addEventListener("change", () => {
+      renderTasks();
+    });
+
+    // ✅ Pagina laden
     fetchTasks();
   </script>
 
