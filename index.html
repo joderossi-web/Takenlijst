@@ -6,6 +6,17 @@
   <title>Taken Overzicht</title>
   <link rel="stylesheet" href="css/materialize.css">
   <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+
+  <style>
+    /* Mobielvriendelijke dropdowns */
+    select {
+      font-size: 1.1rem;
+      padding: 6px;
+    }
+    .card {
+      transition: background-color 0.2s;
+    }
+  </style>
 </head>
 <body>
 
@@ -15,9 +26,9 @@
     </div>
   </nav>
 
-  <div class="container">
+  <div class="container" style="margin-top: 20px;">
     <div class="row" id="tasks-container">
-      <!-- Taken cards komen hier via JS -->
+      <!-- Taken worden via JS toegevoegd -->
     </div>
   </div>
 
@@ -25,37 +36,46 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbw7vdNL-mtGsR8pthDwJI_s_6ItncNNOts4PDJ1gYxdSTiiVPmp3kAKKifEtjfDzWgDNQ/exec";
 
+    // ✅ Taken ophalen bij opstart
     async function fetchTasks() {
       const res = await fetch(API_URL);
       const tasks = await res.json();
-      renderTasks(tasks);
+
+      // ✅ Filter: toon alleen taken waarvan status NIET "OK" is
+      const openTasks = tasks.filter(t => t.status !== "OK");
+
+      renderTasks(openTasks);
     }
 
+    // ✅ Render alle kaarten
     function renderTasks(tasks) {
-      const container = document.getElementById('tasks-container');
+      const container = document.getElementById("tasks-container");
       container.innerHTML = "";
 
       tasks.forEach(task => {
-        const card = document.createElement('div');
-        card.className = "col s12 m6";
+        const col = document.createElement("div");
+        col.className = "col s12";
 
-        let colorClass = task.status === "OK" ? "green lighten-4" :
-                         task.status === "Bezig" ? "yellow lighten-4" :
-                         "red lighten-4";
+        // Kaartkleur bepalen
+        let colorClass = "red lighten-4";   // default NOK
+        if (task.status === "Bezig") colorClass = "yellow lighten-4";
+        if (task.status === "OK") colorClass = "green lighten-4";
 
-        card.innerHTML = `
+        col.innerHTML = `
           <div class="card ${colorClass}">
             <div class="card-content">
               <span class="card-title">${task.omschrijving}</span>
+
               <p><strong>Deadline:</strong> ${task.deadline}</p>
+
               <p>
                 <label>
-                  <input type="checkbox" ${task.belangrijk ? "checked" : ""} class="belangrijk" data-id="${task.id}" />
+                  <input type="checkbox" class="belangrijk" data-id="${task.id}" ${task.belangrijk ? "checked" : ""} />
                   <span>Belangrijk</span>
                 </label>
               </p>
-              <p>
-                <strong>Prioriteit:</strong>
+
+              <p><strong>Prioriteit:</strong>
                 <select class="prioriteit browser-default" data-id="${task.id}">
                   <option value="1" ${task.prioriteit==1?"selected":""}>1</option>
                   <option value="2" ${task.prioriteit==2?"selected":""}>2</option>
@@ -64,45 +84,82 @@
                   <option value="5" ${task.prioriteit==5?"selected":""}>5</option>
                 </select>
               </p>
-              <p>
-                <strong>Status:</strong>
+
+              <p><strong>Status:</strong>
                 <select class="status browser-default" data-id="${task.id}">
                   <option value="NOK" ${task.status==="NOK"?"selected":""}>NOK</option>
                   <option value="Bezig" ${task.status==="Bezig"?"selected":""}>Bezig</option>
                   <option value="OK" ${task.status==="OK"?"selected":""}>OK</option>
                 </select>
               </p>
+
               <p><strong>Verantwoordelijke:</strong> ${task.verantwoordelijke}</p>
               <p><strong>Task ID:</strong> ${task.id}</p>
-              ${task.link ? `<p><a href="${task.link}" target="_blank">Meer info</a></p>` : ""}
+
+              ${task.link ? `<p><a href="${task.link}" target="_blank">Document</a></p>` : ""}
             </div>
           </div>
         `;
-        container.appendChild(card);
+
+        container.appendChild(col);
       });
 
-      // Event listeners voor updates
+      addEventListeners();
+    }
+
+    // ✅ Event listeners toevoegen
+    function addEventListeners() {
+
+      // Belangrijk checkbox
       document.querySelectorAll(".belangrijk").forEach(el => {
-        el.addEventListener("change", e => updateTask(e.target.dataset.id, { belangrijk: e.target.checked }));
+        el.addEventListener("change", e => {
+          const id = e.target.dataset.id;
+          const value = e.target.checked;
+          updateTask(id, { belangrijk: value });
+        });
       });
+
+      // Prioriteit dropdown
       document.querySelectorAll(".prioriteit").forEach(el => {
-        el.addEventListener("change", e => updateTask(e.target.dataset.id, { prioriteit: parseInt(e.target.value) }));
+        el.addEventListener("change", e => {
+          const id = e.target.dataset.id;
+          const value = parseInt(e.target.value);
+          updateTask(id, { prioriteit: value });
+        });
       });
+
+      // Status dropdown
       document.querySelectorAll(".status").forEach(el => {
-        el.addEventListener("change", e => updateTask(e.target.dataset.id, { status: e.target.value }));
+        el.addEventListener("change", e => {
+          const id = e.target.dataset.id;
+          const value = e.target.value;
+
+          updateTask(id, { status: value });
+
+          // ✅ Kaartkleur onmiddellijk aanpassen
+          const card = e.target.closest(".card");
+          card.classList.remove("red", "yellow", "green", "lighten-4");
+
+          if (value === "NOK") card.classList.add("red", "lighten-4");
+          if (value === "Bezig") card.classList.add("yellow", "lighten-4");
+          if (value === "OK") card.classList.add("green", "lighten-4");
+        });
       });
     }
 
+    // ✅ Nieuwe updateTask: geen refresh meer!
     async function updateTask(id, changes) {
       changes.id = id;
+
       await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify(changes)
       });
-      fetchTasks(); // herlaad na update
+
+      // GEEN fetchTasks() meer hier → geen terugspringen!
     }
 
-    // Initial load
+    // ✅ Start de pagina
     fetchTasks();
   </script>
 
