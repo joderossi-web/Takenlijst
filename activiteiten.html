@@ -1,109 +1,77 @@
 <!DOCTYPE html>
 <html lang="nl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Activiteiten</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Activiteiten</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"
+  />
+  <style>
+    body { padding: 20px; background-color: #fafafa; }
+    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+    .card .card-content { flex-grow: 1; }
+    .card .card-title i { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h4>Activiteiten</h4>
+    <div id="activiteitenContainer" class="row"></div>
+  </div>
 
-    <!-- Materialize CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
-    <style>
-      body {
-        background-color: #fafafa;
-        padding: 10px;
-      }
-      .card {
-        border-radius: 12px;
-      }
-      .card .card-content {
-        min-height: 120px;
-      }
-      .header {
-        text-align: center;
-        margin-top: 15px;
-        margin-bottom: 25px;
-      }
-      .back-btn {
-        margin-top: 10px;
-      }
-    </style>
-  </head>
+    async function laadActiviteiten() {
+      try {
+        const res = await fetch(`${API_URL}?type=activiteiten`);
+        const items = await res.json();
 
-  <body>
-    <div class="container">
-      <a href="index.html" class="btn blue lighten-1 back-btn">
-        <i class="material-icons left">arrow_back</i>Terug
-      </a>
-      <h5 class="header">Activiteiten</h5>
-      <div id="activiteiten" class="row"></div>
-    </div>
+        const container = document.getElementById("activiteitenContainer");
+        container.innerHTML = "";
 
-    <!-- Materialize JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+        items.forEach(item => {
+          const naam = item["Naam Activiteit"] || "Onbekend";
+          const beschrijving = item["Omschrijving"] || "";
+          const tabblad = item["Tabblad"] || "";
+          const icoon = item["Kleur/Icoon"] || "event";
 
-    <script>
-      // URL van jouw webapp (Apps Script)
-      const API_URL =
-        "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+          // kleur per default voor activiteiten
+          const kleur = "blue lighten-3";
 
-      async function fetchActiviteiten() {
-        try {
-          const res = await fetch(`${API_URL}?type=activiteiten`);
-          const data = await res.json();
-
-          const container = document.getElementById("activiteiten");
-          container.innerHTML = "";
-
-          if (data.length === 0) {
-            container.innerHTML =
-              "<p class='center-align grey-text'>Geen activiteiten gevonden.</p>";
-            return;
-          }
-
-          data.forEach((act) => {
-            const naam = act.naam || "Onbekend";
-            const omschrijving = act.omschrijving || "";
-            const icoon = act.icoon || "event";
-            const kleur = act.kleur || "blue lighten-4";
-
-            const card = document.createElement("div");
-            card.className = "col s12 m6 l4";
-
-            // Link naar interne taken.html met query parameter activiteit
-            card.innerHTML = `
-              <div class="card ${kleur}">
-                <div class="card-content">
-                  <span class="card-title">
-                    <i class="material-icons left">${icoon}</i>${naam}
-                  </span>
-                  <p>${omschrijving}</p>
-                </div>
-                <div class="card-action">
-                  <a href="taken.html?activiteit=${encodeURIComponent(naam)}">
-                    Bekijk taken
-                  </a>
-                </div>
+          const cardDiv = document.createElement("div");
+          cardDiv.className = "col s12 m6 l4";
+          cardDiv.innerHTML = `
+            <div class="card ${kleur}">
+              <div class="card-content">
+                <span class="card-title"><i class="material-icons left">${icoon}</i>${naam}</span>
+                <p>${beschrijving}</p>
               </div>
-            `;
-            container.appendChild(card);
-          });
-        } catch (err) {
-          console.error("Fout bij laden:", err);
-          document.getElementById("activiteiten").innerHTML =
-            "<p class='red-text center-align'>Kon gegevens niet laden.</p>";
-        }
-      }
+            </div>
+          `;
 
-      // Laad activiteiten bij pagina start
-      fetchActiviteiten();
-    </script>
-  </body>
+          cardDiv.querySelector(".card").addEventListener("click", () => {
+            // Open de takenpagina voor deze activiteit
+            window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
+          });
+
+          container.appendChild(cardDiv);
+        });
+      } catch (err) {
+        console.error("Fout bij laden activiteiten:", err);
+        document.getElementById("activiteitenContainer").innerHTML =
+          "<p class='red-text center-align'>Kon activiteiten niet laden.</p>";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", laadActiviteiten);
+  </script>
+</body>
 </html>
