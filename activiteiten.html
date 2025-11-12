@@ -93,7 +93,7 @@
                 <div class="card-action">
                   ${
                     taakLink
-                      ? `<a href="${taakLink}" target="_blank">Open takenblad</a>`
+                      ? `<a href="taken.html?activiteit=${encodeURIComponent(naam)}">Bekijk taken</a>`
                       : `<span class="grey-text">Geen spreadsheet gekoppeld</span>`
                   }
                 </div>
