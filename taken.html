@@ -13,20 +13,10 @@
       rel="stylesheet"
     />
     <style>
-      body {
-        background-color: #fafafa;
-        padding: 20px;
-      }
-      .card {
-        margin-bottom: 15px;
-        border-radius: 12px;
-      }
-      .card-action {
-        text-align: right;
-      }
-      .back-btn {
-        margin-bottom: 15px;
-      }
+      body { background-color: #fafafa; padding: 20px; }
+      .card { margin-bottom: 15px; border-radius: 12px; }
+      .card-action { text-align: right; }
+      .back-btn { margin-bottom: 15px; }
     </style>
   </head>
   <body>
@@ -47,10 +37,8 @@
       // Haal activiteit uit de URL
       const urlParams = new URLSearchParams(window.location.search);
       const activiteit = urlParams.get("activiteit");
-
       document.getElementById("titel").innerText = activiteit;
 
-      // Taken ophalen
       async function laadTaken() {
         try {
           const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}`);
@@ -83,12 +71,22 @@
                     <label class="active" for="verantwoordelijke-${taak.taakId}">Verantwoordelijke</label>
                   </div>
                   <div class="input-field">
+                    <input type="number" id="prioriteit-${taak.taakId}" value="${taak.prioriteit}" />
+                    <label class="active" for="prioriteit-${taak.taakId}">Prioriteit</label>
+                  </div>
+                  <p>
+                    <label>
+                      <input type="checkbox" id="belangrijk-${taak.taakId}" ${taak.belangrijk ? "checked" : ""}/>
+                      <span>Belangrijk</span>
+                    </label>
+                  </p>
+                  <div class="input-field">
                     <input type="text" id="deadline-${taak.taakId}" value="${taak.deadline}" disabled />
                     <label class="active" for="deadline-${taak.taakId}">Deadline</label>
                   </div>
                   <div class="input-field">
-                    <input type="text" id="opmerking-${taak.taakId}" value="${taak.opmerking}" />
-                    <label class="active" for="opmerking-${taak.taakId}">Opmerking</label>
+                    <input type="text" id="opmerking-${taak.taakId}" value="${taak.link}" />
+                    <label class="active" for="opmerking-${taak.taakId}">Link / Opmerking</label>
                   </div>
                 </div>
                 <div class="card-action">
@@ -99,8 +97,6 @@
               </div>
             `;
             container.appendChild(card);
-
-            // Init Materialize select
             const elems = card.querySelectorAll("select");
             M.FormSelect.init(elems);
           });
@@ -111,23 +107,17 @@
         }
       }
 
-      // Bidirectioneel opslaan
       async function updateTaak(taakId) {
-        const titel = document.getElementById(`titel-${taakId}`).value;
-        const status = document.getElementById(`status-${taakId}`).value;
-        const verantwoordelijke = document.getElementById(`verantwoordelijke-${taakId}`).value;
-        const deadline = document.getElementById(`deadline-${taakId}`).value;
-        const opmerking = document.getElementById(`opmerking-${taakId}`).value;
-
         const payload = {
           activiteit: activiteit,
           taak: {
             taakId,
-            titel,
-            status,
-            verantwoordelijke,
-            deadline,
-            opmerking
+            titel: document.getElementById(`titel-${taakId}`).value,
+            status: document.getElementById(`status-${taakId}`).value,
+            verantwoordelijke: document.getElementById(`verantwoordelijke-${taakId}`).value,
+            prioriteit: parseInt(document.getElementById(`prioriteit-${taakId}`).value),
+            belangrijk: document.getElementById(`belangrijk-${taakId}`).checked,
+            link: document.getElementById(`opmerking-${taakId}`).value
           }
         };
 
@@ -136,15 +126,14 @@
             method: "POST",
             body: JSON.stringify(payload)
           });
-          M.toast({html: 'Opgeslagen!', classes: 'green'});
+          M.toast({ html: "Opgeslagen!", classes: "green" });
         } catch (err) {
           console.error("Fout bij opslaan:", err);
-          M.toast({html: 'Fout bij opslaan', classes: 'red'});
+          M.toast({ html: "Fout bij opslaan", classes: "red" });
         }
       }
 
-      // Laad de taken bij opstart
-      document.addEventListener("DOMContentLoaded", function() {
+      document.addEventListener("DOMContentLoaded", () => {
         laadTaken();
       });
     </script>
