@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Taken</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #fafafa;
+        padding: 20px;
+      }
+      .card {
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="activiteiten.html" class="btn blue lighten-1">
+      <i class="material-icons left">arrow_back</i>Terug
+    </a>
+
+    <h5 id="titel"></h5>
+
+    <div id="takenContainer" class="row"></div>
+
+    <script>
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const activiteit = urlParams.get("activiteit");
+
+      document.getElementById("titel").innerText = activiteit;
+
+      async function laadTaken() {
+        const res = await fetch(`${API_URL}?type=taken&activiteit=${activiteit}`);
+        const data = await res.json();
+        const container = document.getElementById("takenContainer");
+
+        container.innerHTML = "";
+
+        data.forEach((taak) => {
+          const card = document.createElement("div");
+          card.className = "col s12 m6";
+
+          card.innerHTML = `
+            <div class="card white">
+              <div class="card-content">
+                <span class="card-title">${taak.titel}</span>
+                <p><b>Status:</b> ${taak.status}</p>
+                <p><b>Verantwoordelijke:</b> ${taak.verantwoordelijke}</p>
+                <p><b>Deadline:</b> ${taak.deadline}</p>
+                <p><b>Opmerking:</b> ${taak.opmerking}</p>
+              </div>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+      }
+
+      laadTaken();
+    </script>
+  </body>
+</html>
