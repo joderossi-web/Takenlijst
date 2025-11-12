@@ -1,186 +1,64 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taken Overzicht</title>
-  <link rel="stylesheet" href="css/materialize.css">
-  <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+<div id="taken-container" class="row"></div>
 
-  <style>
-    select { font-size: 1.1rem; padding: 6px; }
-    .card { transition: background-color 0.2s; }
-  </style>
-</head>
-<body>
+<script>
+const API_URL = "JE_WEBAPP_URL_HIER";
 
-  <nav>
-    <div class="nav-wrapper teal">
-      <a href="#!" class="brand-logo center">Taken Overzicht</a>
-    </div>
-  </nav>
+function getQueryParam(param) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(param);
+}
 
-  <div class="container" style="margin-top: 20px;">
+const sheetId = getQueryParam("sheetId");
+const tabName = getQueryParam("tab");
 
-    <!-- Toggle voor afgeronde taken -->
-    <div class="row">
-      <div class="col s12">
-        <label>
-          <input type="checkbox" id="showAllTasks" />
-          <span>Toon ook afgeronde taken (OK)</span>
-        </label>
+// Bidirectionele update functie
+async function updateTask(taskId, changes) {
+  changes.ID = taskId;
+  changes.sheetId = sheetId;
+  changes.tab = tabName;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify(changes)
+  });
+}
+
+async function fetchTaken() {
+  const res = await fetch(`${API_URL}?sheetId=${sheetId}&tab=${tabName}`);
+  const data = await res.json();
+  
+  const container = document.getElementById("taken-container");
+  container.innerHTML = "";
+
+  data.taken.forEach(task => {
+    const card = document.createElement("div");
+    card.className = "col s12";
+    card.innerHTML = `
+      <div class="card grey lighten-4">
+        <div class="card-content">
+          <span class="card-title">${task["Taak"]}</span>
+          <p>Deadline: <input type="date" value="${task["Deadline"]}" id="date-${task["ID"]}"></p>
+          <p>Prioriteit: 
+            <select id="prio-${task["ID"]}">
+              <option value="1" ${task["Prioriteit"]==1?"selected":""}>1</option>
+              <option value="2" ${task["Prioriteit"]==2?"selected":""}>2</option>
+              <option value="3" ${task["Prioriteit"]==3?"selected":""}>3</option>
+              <option value="4" ${task["Prioriteit"]==4?"selected":""}>4</option>
+              <option value="5" ${task["Prioriteit"]==5?"selected":""}>5</option>
+            </select>
+          </p>
+          <p>Belangrijk: <input type="checkbox" id="check-${task["ID"]}" ${task["Belangrijk"]?"checked":""}></p>
+        </div>
       </div>
-    </div>
+    `;
+    container.appendChild(card);
 
-    <div class="row" id="tasks-container">
-      <!-- Taken worden via JS toegevoegd -->
-    </div>
+    // Event listeners voor bidirectionele update
+    document.getElementById(`date-${task["ID"]}`).addEventListener("change", e => updateTask(task["ID"], {"Deadline": e.target.value}));
+    document.getElementById(`prio-${task["ID"]}`).addEventListener("change", e => updateTask(task["ID"], {"Prioriteit": e.target.value}));
+    document.getElementById(`check-${task["ID"]}`).addEventListener("change", e => updateTask(task["ID"], {"Belangrijk": e.target.checked}));
+  });
+}
 
-  </div>
-
-  <script src="js/materialize.js"></script>
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7vdNL-mtGsR8pthDwJI_s_6ItncNNOts4PDJ1gYxdSTiiVPmp3kAKKifEtjfDzWgDNQ/exec";
-
-    let allTasks = []; // alle taken opslaan
-
-    // ✅ Haal taken op bij pagina-opstart
-    async function fetchTasks() {
-      const res = await fetch(API_URL);
-      const tasks = await res.json();
-      allTasks = tasks;
-      renderTasks();
-    }
-
-    // ✅ Format date DD/MM/YYYY
-    function formatDateDDMMYYYY(v) {
-      if (!v) return "";
-      const maybeDate = new Date(v);
-      if (!isNaN(maybeDate)) {
-        const day = String(maybeDate.getDate()).padStart(2, "0");
-        const month = String(maybeDate.getMonth() + 1).padStart(2, "0");
-        const year = maybeDate.getFullYear();
-        return `${day}/${month}/${year}`;
-      }
-      return String(v);
-    }
-
-    // ✅ Render kaarten
-    function renderTasks() {
-      const container = document.getElementById("tasks-container");
-      container.innerHTML = "";
-
-      const showAll = document.getElementById("showAllTasks").checked;
-      const tasksToRender = showAll ? allTasks : allTasks.filter(t => t.status !== "OK");
-
-      tasksToRender.forEach(task => {
-        const col = document.createElement("div");
-        col.className = "col s12";
-
-        let colorClass = "red lighten-4";
-        if (task.status === "Bezig") colorClass = "yellow lighten-4";
-        if (task.status === "OK") colorClass = "green lighten-4";
-
-        col.innerHTML = `
-          <div class="card ${colorClass}">
-            <div class="card-content">
-              <span class="card-title">${task.omschrijving}</span>
-              <p><strong>Deadline:</strong> ${formatDateDDMMYYYY(task.deadline)}</p>
-
-              <p>
-                <label>
-                  <input type="checkbox" class="belangrijk" data-id="${task.id}" ${task.belangrijk ? "checked" : ""} />
-                  <span>Belangrijk</span>
-                </label>
-              </p>
-
-              <p><strong>Prioriteit:</strong>
-                <select class="prioriteit browser-default" data-id="${task.id}">
-                  <option value="1" ${task.prioriteit==1?"selected":""}>1</option>
-                  <option value="2" ${task.prioriteit==2?"selected":""}>2</option>
-                  <option value="3" ${task.prioriteit==3?"selected":""}>3</option>
-                  <option value="4" ${task.prioriteit==4?"selected":""}>4</option>
-                  <option value="5" ${task.prioriteit==5?"selected":""}>5</option>
-                </select>
-              </p>
-
-              <p><strong>Status:</strong>
-                <select class="status browser-default" data-id="${task.id}">
-                  <option value="NOK" ${task.status==="NOK"?"selected":""}>NOK</option>
-                  <option value="Bezig" ${task.status==="Bezig"?"selected":""}>Bezig</option>
-                  <option value="OK" ${task.status==="OK"?"selected":""}>OK</option>
-                </select>
-              </p>
-
-              <p><strong>Verantwoordelijke:</strong> ${task.verantwoordelijke}</p>
-              <p><strong>Task ID:</strong> ${task.id}</p>
-              ${task.link ? `<p><a href="${task.link}" target="_blank">Document</a></p>` : ""}
-            </div>
-          </div>
-        `;
-
-        container.appendChild(col);
-      });
-
-      addEventListeners();
-    }
-
-    // ✅ Event listeners
-    function addEventListeners() {
-      // Belangrijk
-      document.querySelectorAll(".belangrijk").forEach(el => {
-        el.addEventListener("change", e => {
-          const id = e.target.dataset.id;
-          const value = e.target.checked;
-          updateTask(id, { belangrijk: value });
-        });
-      });
-
-      // Prioriteit
-      document.querySelectorAll(".prioriteit").forEach(el => {
-        el.addEventListener("change", e => {
-          const id = e.target.dataset.id;
-          const value = parseInt(e.target.value);
-          updateTask(id, { prioriteit: value });
-        });
-      });
-
-      // Status
-      document.querySelectorAll(".status").forEach(el => {
-        el.addEventListener("change", e => {
-          const id = e.target.dataset.id;
-          const value = e.target.value;
-
-          updateTask(id, { status: value });
-
-          // Kaartkleur direct aanpassen
-          const card = e.target.closest(".card");
-          card.classList.remove("red", "yellow", "green", "lighten-4");
-          if (value === "NOK") card.classList.add("red", "lighten-4");
-          if (value === "Bezig") card.classList.add("yellow", "lighten-4");
-          if (value === "OK") card.classList.add("green", "lighten-4");
-        });
-      });
-    }
-
-    // ✅ Update naar backend
-    async function updateTask(id, changes) {
-      changes.id = id;
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(changes)
-      });
-      // Geen fetchTasks() meer → geen terugspringen
-    }
-
-    // ✅ Toggle voor OK-taken
-    document.getElementById("showAllTasks").addEventListener("change", () => {
-      renderTasks();
-    });
-
-    // ✅ Pagina laden
-    fetchTasks();
-  </script>
-
-</body>
-</html>
+document.addEventListener("DOMContentLoaded", fetchTaken);
+</script>
