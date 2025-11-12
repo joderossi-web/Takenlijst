@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Overzicht</title>
+    <title>Hoofdpagina</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
@@ -15,6 +15,7 @@
     <style>
       body { padding: 20px; background-color: #fafafa; }
       .card { margin-bottom: 15px; border-radius: 12px; cursor: pointer; }
+      .card-content span.card-title { font-size: 1.2rem; }
     </style>
   </head>
   <body>
@@ -61,13 +62,10 @@
             // Klik naar juiste pagina afhankelijk van type
             cardDiv.querySelector(".card").addEventListener("click", () => {
               if (type === "Activiteiten") {
-                // Activiteiten pagina
                 window.location.href = `activiteiten.html`;
               } else if (type === "Taken") {
-                // Taken pagina
                 window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
               } else {
-                // Andere types eventueel extern openen
                 if (spreadsheetId && tabbladNaam) {
                   const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
                   window.open(url, "_blank");
