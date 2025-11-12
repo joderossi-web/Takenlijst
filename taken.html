@@ -17,13 +17,16 @@
     .card { min-height: 150px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; }
     .card .card-content { flex-grow: 1; }
     .card .card-title i { margin-right: 8px; }
-    .status-select { width: 100%; margin-top: 10px; }
-    .priority-select { width: 100%; margin-top: 10px; }
+    .status-select, .priority-select { width: 100%; margin-top: 10px; }
+    #message { text-align: center; margin-top: 30px; font-size: 1.2em; }
+    #backBtn { margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
+    <button id="backBtn" class="btn waves-effect waves-light"><i class="material-icons left">arrow_back</i>Vorige</button>
     <h4 id="activiteitTitel">Taken</h4>
+    <div id="message"></div>
     <div id="takenContainer" class="row"></div>
   </div>
 
@@ -31,10 +34,13 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
-    // Haal activiteit uit URL
     const urlParams = new URLSearchParams(window.location.search);
     const activiteitNaam = urlParams.get("activiteit") || "Onbekend";
     document.getElementById("activiteitTitel").innerText = `Taken: ${activiteitNaam}`;
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      window.history.back(); // terug naar vorige pagina
+    });
 
     async function fetchTasks() {
       try {
@@ -42,7 +48,14 @@
         const taken = await res.json();
 
         const container = document.getElementById("takenContainer");
+        const messageDiv = document.getElementById("message");
         container.innerHTML = "";
+        messageDiv.innerText = "";
+
+        if (!taken || taken.length === 0) {
+          messageDiv.innerText = "Geen taken gevonden voor deze activiteit.";
+          return;
+        }
 
         taken.forEach(taak => {
           const cardDiv = document.createElement("div");
@@ -85,7 +98,7 @@
           const prioritySelect = card.querySelector(".priority-select");
           const belangrijkCheckbox = card.querySelector(".belangrijk-checkbox");
 
-          // Event listeners voor bidirectionele update
+          // Bidirectioneel update
           statusSelect.addEventListener("change", () => updateTaak(taak, {status: statusSelect.value}));
           prioritySelect.addEventListener("change", () => updateTaak(taak, {prioriteit: parseInt(prioritySelect.value)}));
           belangrijkCheckbox.addEventListener("change", () => updateTaak(taak, {belangrijk: belangrijkCheckbox.checked}));
@@ -97,8 +110,7 @@
 
       } catch(err) {
         console.error("Kon taken niet laden:", err);
-        document.getElementById("takenContainer").innerHTML =
-          "<p class='red-text center-align'>Kon taken niet laden.</p>";
+        document.getElementById("message").innerText = "Kon taken niet laden. Controleer je verbinding of spreadsheet instellingen.";
       }
     }
 
@@ -110,8 +122,6 @@
         method: "POST",
         body: JSON.stringify(changes)
       });
-
-      // UI blijft zoals gebruiker hem heeft gezet, geen herladen
     }
 
     document.addEventListener("DOMContentLoaded", fetchTasks);
