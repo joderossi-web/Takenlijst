@@ -2,6 +2,7 @@
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Taken</title>
     <link
       rel="stylesheet"
@@ -13,60 +14,139 @@
     />
     <style>
       body {
-        background: #fafafa;
+        background-color: #fafafa;
         padding: 20px;
       }
       .card {
+        margin-bottom: 15px;
+        border-radius: 12px;
+      }
+      .card-action {
+        text-align: right;
+      }
+      .back-btn {
         margin-bottom: 15px;
       }
     </style>
   </head>
   <body>
-    <a href="activiteiten.html" class="btn blue lighten-1">
-      <i class="material-icons left">arrow_back</i>Terug
-    </a>
+    <div class="container">
+      <a href="activiteiten.html" class="btn blue lighten-1 back-btn">
+        <i class="material-icons left">arrow_back</i>Terug
+      </a>
 
-    <h5 id="titel"></h5>
+      <h5 id="titel"></h5>
+      <div id="takenContainer" class="row"></div>
+    </div>
 
-    <div id="takenContainer" class="row"></div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script>
       const API_URL =
         "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
+      // Haal activiteit uit de URL
       const urlParams = new URLSearchParams(window.location.search);
       const activiteit = urlParams.get("activiteit");
 
       document.getElementById("titel").innerText = activiteit;
 
+      // Taken ophalen
       async function laadTaken() {
-        const res = await fetch(`${API_URL}?type=taken&activiteit=${activiteit}`);
-        const data = await res.json();
-        const container = document.getElementById("takenContainer");
+        try {
+          const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}`);
+          const taken = await res.json();
 
-        container.innerHTML = "";
+          const container = document.getElementById("takenContainer");
+          container.innerHTML = "";
 
-        data.forEach((taak) => {
-          const card = document.createElement("div");
-          card.className = "col s12 m6";
+          taken.forEach((taak) => {
+            const card = document.createElement("div");
+            card.className = "col s12 m6";
 
-          card.innerHTML = `
-            <div class="card white">
-              <div class="card-content">
-                <span class="card-title">${taak.titel}</span>
-                <p><b>Status:</b> ${taak.status}</p>
-                <p><b>Verantwoordelijke:</b> ${taak.verantwoordelijke}</p>
-                <p><b>Deadline:</b> ${taak.deadline}</p>
-                <p><b>Opmerking:</b> ${taak.opmerking}</p>
+            card.innerHTML = `
+              <div class="card white">
+                <div class="card-content">
+                  <div class="input-field">
+                    <input type="text" id="titel-${taak.taakId}" value="${taak.titel}" />
+                    <label class="active" for="titel-${taak.taakId}">Titel</label>
+                  </div>
+                  <div class="input-field">
+                    <select id="status-${taak.taakId}">
+                      <option value="NOK" ${taak.status === "NOK" ? "selected" : ""}>NOK</option>
+                      <option value="Bezig" ${taak.status === "Bezig" ? "selected" : ""}>Bezig</option>
+                      <option value="OK" ${taak.status === "OK" ? "selected" : ""}>OK</option>
+                    </select>
+                    <label>Status</label>
+                  </div>
+                  <div class="input-field">
+                    <input type="text" id="verantwoordelijke-${taak.taakId}" value="${taak.verantwoordelijke}" />
+                    <label class="active" for="verantwoordelijke-${taak.taakId}">Verantwoordelijke</label>
+                  </div>
+                  <div class="input-field">
+                    <input type="text" id="deadline-${taak.taakId}" value="${taak.deadline}" disabled />
+                    <label class="active" for="deadline-${taak.taakId}">Deadline</label>
+                  </div>
+                  <div class="input-field">
+                    <input type="text" id="opmerking-${taak.taakId}" value="${taak.opmerking}" />
+                    <label class="active" for="opmerking-${taak.taakId}">Opmerking</label>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <a class="btn green lighten-1" onclick="updateTaak('${taak.taakId}')">
+                    <i class="material-icons left">save</i>Opslaan
+                  </a>
+                </div>
               </div>
-            </div>
-          `;
+            `;
+            container.appendChild(card);
 
-          container.appendChild(card);
-        });
+            // Init Materialize select
+            const elems = card.querySelectorAll("select");
+            M.FormSelect.init(elems);
+          });
+        } catch (err) {
+          console.error("Fout bij laden taken:", err);
+          document.getElementById("takenContainer").innerHTML =
+            "<p class='red-text center-align'>Kon taken niet laden.</p>";
+        }
       }
 
-      laadTaken();
+      // Bidirectioneel opslaan
+      async function updateTaak(taakId) {
+        const titel = document.getElementById(`titel-${taakId}`).value;
+        const status = document.getElementById(`status-${taakId}`).value;
+        const verantwoordelijke = document.getElementById(`verantwoordelijke-${taakId}`).value;
+        const deadline = document.getElementById(`deadline-${taakId}`).value;
+        const opmerking = document.getElementById(`opmerking-${taakId}`).value;
+
+        const payload = {
+          activiteit: activiteit,
+          taak: {
+            taakId,
+            titel,
+            status,
+            verantwoordelijke,
+            deadline,
+            opmerking
+          }
+        };
+
+        try {
+          await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          M.toast({html: 'Opgeslagen!', classes: 'green'});
+        } catch (err) {
+          console.error("Fout bij opslaan:", err);
+          M.toast({html: 'Fout bij opslaan', classes: 'red'});
+        }
+      }
+
+      // Laad de taken bij opstart
+      document.addEventListener("DOMContentLoaded", function() {
+        laadTaken();
+      });
     </script>
   </body>
 </html>
