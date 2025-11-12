@@ -50,9 +50,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
     <script>
+      // URL van jouw nieuwe webapp (Apps Script)
       const API_URL =
         "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
+      // Haal de activiteiten op
       async function fetchActiviteiten() {
         try {
           const res = await fetch(`${API_URL}?type=activiteiten`);
@@ -72,16 +74,11 @@
             const omschrijving = act.omschrijving || "";
             const icoon = act.icoon || "event";
             const kleur = act.kleur || "blue lighten-4";
-            const sheetId = act.spreadsheetId || "";
-            const tabblad = act.tabblad || "Taken";
-
-            let taakLink = "";
-            if (sheetId) {
-              taakLink = `https://docs.google.com/spreadsheets/d/${sheetId}/edit#gid=0`;
-            }
 
             const card = document.createElement("div");
             card.className = "col s12 m6 l4";
+
+            // link naar taken.html met query parameter activiteit
             card.innerHTML = `
               <div class="card ${kleur}">
                 <div class="card-content">
@@ -91,11 +88,9 @@
                   <p>${omschrijving}</p>
                 </div>
                 <div class="card-action">
-                  ${
-                    taakLink
-                      ? `<a href="taken.html?activiteit=${encodeURIComponent(naam)}">Bekijk taken</a>`
-                      : `<span class="grey-text">Geen spreadsheet gekoppeld</span>`
-                  }
+                  <a href="taken.html?activiteit=${encodeURIComponent(naam)}">
+                    Bekijk taken
+                  </a>
                 </div>
               </div>
             `;
@@ -108,6 +103,7 @@
         }
       }
 
+      // Laad de activiteiten bij opstart
       fetchActiviteiten();
     </script>
   </body>
