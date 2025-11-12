@@ -1,97 +1,95 @@
 <!DOCTYPE html>
 <html lang="nl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Hoofdpagina</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
-    <style>
-      body { padding: 20px; background-color: #fafafa; }
-      .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
-      .card .card-content { flex-grow: 1; }
-      .card .card-title i { margin-right: 8px; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h4>Overzicht</h4>
-      <div id="overzichtContainer" class="row"></div>
-    </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hoofdpagina</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"
+  />
+  <style>
+    body { padding: 20px; background-color: #fafafa; }
+    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+    .card .card-content { flex-grow: 1; }
+    .card .card-title i { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h4>Overzicht</h4>
+    <div id="overzichtContainer" class="row"></div>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script>
-      const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
-      // Map spreadsheet kleur/icoon naar Materialize kleurklasse
-      const kleurMap = {
-        "blauw": "blue lighten-3",
-        "groen": "green lighten-2",
-        "feest": "pink lighten-2",
-        "eten": "orange lighten-2",
-        "financieel": "teal lighten-2",
-        "vergadering": "purple lighten-2"
-      };
+    async function laadOverzicht() {
+      try {
+        const res = await fetch(`${API_URL}?type=overzicht`);
+        const items = await res.json();
 
-      async function laadOverzicht() {
-        try {
-          const res = await fetch(`${API_URL}?type=overzicht`);
-          const items = await res.json();
+        const container = document.getElementById("overzichtContainer");
+        container.innerHTML = "";
 
-          const container = document.getElementById("overzichtContainer");
-          container.innerHTML = "";
+        items.forEach(item => {
+          if (item["Actief"] !== true && item["Actief"] !== "TRUE") return;
 
-          items.forEach(item => {
-            if (item["Actief"] !== true && item["Actief"] !== "TRUE") return;
+          const naam = item["Naam"] || "Onbekend";
+          const beschrijving = item["Beschrijving"] || "";
+          const type = (item["Type"] || "").toString().trim().toLowerCase();
+          const spreadsheetId = item["Spreadsheet ID"] || "";
+          const tabbladNaam = item["Tabbladnaam"] || "";
+          const icoon = item["Kleur/Icoon"] || "folder";
 
-            const naam = item["Naam"] || "Onbekend";
-            const beschrijving = item["Beschrijving"] || "";
-            const type = item["Type"] || "";
-            const spreadsheetId = item["Spreadsheet ID"] || "";
-            const tabbladNaam = item["Tabbladnaam"] || "";
-            const kleur = kleurMap[item["Kleur/Icoon"]] || "grey lighten-2";
-            const icoon = item["Kleur/Icoon"] || "folder";
+          // Kleur per type
+          let kleur = "grey lighten-2"; // fallback
+          switch(type) {
+            case "activiteiten": kleur = "blue lighten-3"; break;
+            case "commissies": kleur = "green lighten-3"; break;
+            case "financieel": kleur = "teal lighten-2"; break;
+            case "vergaderingen": kleur = "purple lighten-3"; break;
+          }
 
-            const cardDiv = document.createElement("div");
-            cardDiv.className = "col s12 m6 l4"; // responsive
-            cardDiv.innerHTML = `
-              <div class="card ${kleur}">
-                <div class="card-content">
-                  <span class="card-title"><i class="material-icons left">${icoon}</i>${naam}</span>
-                  <p>${beschrijving}</p>
-                </div>
+          const cardDiv = document.createElement("div");
+          cardDiv.className = "col s12 m6 l4";
+          cardDiv.innerHTML = `
+            <div class="card ${kleur}">
+              <div class="card-content">
+                <span class="card-title"><i class="material-icons left">${icoon}</i>${naam}</span>
+                <p>${beschrijving}</p>
               </div>
-            `;
+            </div>
+          `;
 
-            cardDiv.querySelector(".card").addEventListener("click", () => {
-              if (type === "Activiteiten") {
-                window.location.href = `activiteiten.html`;
-              } else if (type === "Taken") {
-                window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
-              } else {
-                if (spreadsheetId && tabbladNaam) {
-                  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
-                  window.open(url, "_blank");
-                }
+          cardDiv.querySelector(".card").addEventListener("click", () => {
+            if (type === "activiteiten") {
+              window.location.href = `activiteiten.html`;
+            } else if (type === "taken") {
+              window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
+            } else {
+              if (spreadsheetId && tabbladNaam) {
+                const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
+                window.open(url, "_blank");
               }
-            });
-
-            container.appendChild(cardDiv);
+            }
           });
-        } catch (err) {
-          console.error("Fout bij laden overzicht:", err);
-          document.getElementById("overzichtContainer").innerHTML =
-            "<p class='red-text center-align'>Kon overzicht niet laden.</p>";
-        }
-      }
 
-      document.addEventListener("DOMContentLoaded", laadOverzicht);
-    </script>
-  </body>
+          container.appendChild(cardDiv);
+        });
+      } catch (err) {
+        console.error("Fout bij laden overzicht:", err);
+        document.getElementById("overzichtContainer").innerHTML =
+          "<p class='red-text center-align'>Kon overzicht niet laden.</p>";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", laadOverzicht);
+  </script>
+</body>
 </html>
