@@ -1,141 +1,120 @@
 <!DOCTYPE html>
 <html lang="nl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Taken</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
-    <style>
-      body { background-color: #fafafa; padding: 20px; }
-      .card { margin-bottom: 15px; border-radius: 12px; }
-      .card-action { text-align: right; }
-      .back-btn { margin-bottom: 15px; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <a href="activiteiten.html" class="btn blue lighten-1 back-btn">
-        <i class="material-icons left">arrow_back</i>Terug
-      </a>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Taken</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"
+  />
+  <style>
+    body { padding: 20px; background-color: #fafafa; }
+    .card { min-height: 150px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card .card-content { flex-grow: 1; }
+    .card .card-title i { margin-right: 8px; }
+    .status-select { width: 100%; margin-top: 10px; }
+    .priority-select { width: 100%; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h4 id="activiteitTitel">Taken</h4>
+    <div id="takenContainer" class="row"></div>
+  </div>
 
-      <h5 id="titel"></h5>
-      <div id="takenContainer" class="row"></div>
-    </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script>
-      const API_URL =
-        "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+    // Haal activiteit uit URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const activiteitNaam = urlParams.get("activiteit") || "Onbekend";
+    document.getElementById("activiteitTitel").innerText = `Taken: ${activiteitNaam}`;
 
-      // Haal activiteit uit de URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const activiteit = urlParams.get("activiteit");
-      document.getElementById("titel").innerText = activiteit;
+    async function fetchTasks() {
+      try {
+        const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteitNaam)}`);
+        const taken = await res.json();
 
-      async function laadTaken() {
-        try {
-          const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}`);
-          const taken = await res.json();
+        const container = document.getElementById("takenContainer");
+        container.innerHTML = "";
 
-          const container = document.getElementById("takenContainer");
-          container.innerHTML = "";
+        taken.forEach(taak => {
+          const cardDiv = document.createElement("div");
+          cardDiv.className = "col s12 m6 l4";
 
-          taken.forEach((taak) => {
-            const card = document.createElement("div");
-            card.className = "col s12 m6";
-
-            card.innerHTML = `
-              <div class="card white">
-                <div class="card-content">
-                  <div class="input-field">
-                    <input type="text" id="titel-${taak.taakId}" value="${taak.titel}" />
-                    <label class="active" for="titel-${taak.taakId}">Titel</label>
-                  </div>
-                  <div class="input-field">
-                    <select id="status-${taak.taakId}">
-                      <option value="NOK" ${taak.status === "NOK" ? "selected" : ""}>NOK</option>
-                      <option value="Bezig" ${taak.status === "Bezig" ? "selected" : ""}>Bezig</option>
-                      <option value="OK" ${taak.status === "OK" ? "selected" : ""}>OK</option>
-                    </select>
-                    <label>Status</label>
-                  </div>
-                  <div class="input-field">
-                    <input type="text" id="verantwoordelijke-${taak.taakId}" value="${taak.verantwoordelijke}" />
-                    <label class="active" for="verantwoordelijke-${taak.taakId}">Verantwoordelijke</label>
-                  </div>
-                  <div class="input-field">
-                    <input type="number" id="prioriteit-${taak.taakId}" value="${taak.prioriteit}" />
-                    <label class="active" for="prioriteit-${taak.taakId}">Prioriteit</label>
-                  </div>
-                  <p>
-                    <label>
-                      <input type="checkbox" id="belangrijk-${taak.taakId}" ${taak.belangrijk ? "checked" : ""}/>
-                      <span>Belangrijk</span>
-                    </label>
-                  </p>
-                  <div class="input-field">
-                    <input type="text" id="deadline-${taak.taakId}" value="${taak.deadline}" disabled />
-                    <label class="active" for="deadline-${taak.taakId}">Deadline</label>
-                  </div>
-                  <div class="input-field">
-                    <input type="text" id="opmerking-${taak.taakId}" value="${taak.link}" />
-                    <label class="active" for="opmerking-${taak.taakId}">Link / Opmerking</label>
-                  </div>
-                </div>
-                <div class="card-action">
-                  <a class="btn green lighten-1" onclick="updateTaak('${taak.taakId}')">
-                    <i class="material-icons left">save</i>Opslaan
-                  </a>
-                </div>
+          cardDiv.innerHTML = `
+            <div class="card blue lighten-4" data-taak-id="${taak.taakId}">
+              <div class="card-content">
+                <span class="card-title">${taak.titel}</span>
+                <p><strong>Verantwoordelijke:</strong> ${taak.verantwoordelijke}</p>
+                <p><strong>Deadline:</strong> ${taak.deadline}</p>
+                <p><strong>Belangrijk:</strong> <input type="checkbox" class="belangrijk-checkbox" ${taak.belangrijk ? "checked" : ""}></p>
+                <p>
+                  <strong>Prioriteit:</strong>
+                  <select class="priority-select">
+                    <option value="1" ${taak.prioriteit==1?'selected':''}>1</option>
+                    <option value="2" ${taak.prioriteit==2?'selected':''}>2</option>
+                    <option value="3" ${taak.prioriteit==3?'selected':''}>3</option>
+                    <option value="4" ${taak.prioriteit==4?'selected':''}>4</option>
+                    <option value="5" ${taak.prioriteit==5?'selected':''}>5</option>
+                  </select>
+                </p>
+                <p>
+                  <strong>Status:</strong>
+                  <select class="status-select">
+                    <option value="NOK" ${taak.status==='NOK'?'selected':''}>NOK</option>
+                    <option value="Bezig" ${taak.status==='Bezig'?'selected':''}>Bezig</option>
+                    <option value="OK" ${taak.status==='OK'?'selected':''}>OK</option>
+                  </select>
+                </p>
+                <p><strong>Link:</strong> <a href="${taak.link}" target="_blank">${taak.link}</a></p>
               </div>
-            `;
-            container.appendChild(card);
-            const elems = card.querySelectorAll("select");
-            M.FormSelect.init(elems);
-          });
-        } catch (err) {
-          console.error("Fout bij laden taken:", err);
-          document.getElementById("takenContainer").innerHTML =
-            "<p class='red-text center-align'>Kon taken niet laden.</p>";
-        }
+            </div>
+          `;
+
+          container.appendChild(cardDiv);
+
+          const card = cardDiv.querySelector(".card");
+          const statusSelect = card.querySelector(".status-select");
+          const prioritySelect = card.querySelector(".priority-select");
+          const belangrijkCheckbox = card.querySelector(".belangrijk-checkbox");
+
+          // Event listeners voor bidirectionele update
+          statusSelect.addEventListener("change", () => updateTaak(taak, {status: statusSelect.value}));
+          prioritySelect.addEventListener("change", () => updateTaak(taak, {prioriteit: parseInt(prioritySelect.value)}));
+          belangrijkCheckbox.addEventListener("change", () => updateTaak(taak, {belangrijk: belangrijkCheckbox.checked}));
+        });
+
+        // Initialiseer Materialize selects
+        const elems = document.querySelectorAll('select');
+        M.FormSelect.init(elems);
+
+      } catch(err) {
+        console.error("Kon taken niet laden:", err);
+        document.getElementById("takenContainer").innerHTML =
+          "<p class='red-text center-align'>Kon taken niet laden.</p>";
       }
+    }
 
-      async function updateTaak(taakId) {
-        const payload = {
-          activiteit: activiteit,
-          taak: {
-            taakId,
-            titel: document.getElementById(`titel-${taakId}`).value,
-            status: document.getElementById(`status-${taakId}`).value,
-            verantwoordelijke: document.getElementById(`verantwoordelijke-${taakId}`).value,
-            prioriteit: parseInt(document.getElementById(`prioriteit-${taakId}`).value),
-            belangrijk: document.getElementById(`belangrijk-${taakId}`).checked,
-            link: document.getElementById(`opmerking-${taakId}`).value
-          }
-        };
+    async function updateTaak(taak, changes) {
+      changes.taak = { ...taak, ...changes };
+      changes.activiteit = activiteitNaam;
 
-        try {
-          await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify(payload)
-          });
-          M.toast({ html: "Opgeslagen!", classes: "green" });
-        } catch (err) {
-          console.error("Fout bij opslaan:", err);
-          M.toast({ html: "Fout bij opslaan", classes: "red" });
-        }
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        laadTaken();
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(changes)
       });
-    </script>
-  </body>
+
+      // UI blijft zoals gebruiker hem heeft gezet, geen herladen
+    }
+
+    document.addEventListener("DOMContentLoaded", fetchTasks);
+  </script>
+</body>
 </html>
