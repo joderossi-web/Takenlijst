@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activiteiten</title>
+
+    <!-- Materialize CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        background-color: #fafafa;
+        padding: 10px;
+      }
+      .card {
+        border-radius: 12px;
+      }
+      .card .card-content {
+        min-height: 120px;
+      }
+      .header {
+        text-align: center;
+        margin-top: 15px;
+        margin-bottom: 25px;
+      }
+      .back-btn {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <a href="index.html" class="btn blue lighten-1 back-btn">
+        <i class="material-icons left">arrow_back</i>Terug
+      </a>
+      <h5 class="header">Activiteiten</h5>
+      <div id="activiteiten" class="row"></div>
+    </div>
+
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script>
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+
+      async function fetchActiviteiten() {
+        try {
+          const res = await fetch(`${API_URL}?type=activiteiten`);
+          const data = await res.json();
+
+          const container = document.getElementById("activiteiten");
+          container.innerHTML = "";
+
+          if (data.length === 0) {
+            container.innerHTML =
+              "<p class='center-align grey-text'>Geen activiteiten gevonden.</p>";
+            return;
+          }
+
+          data.forEach((act) => {
+            const naam = act.naam || "Onbekend";
+            const omschrijving = act.omschrijving || "";
+            const icoon = act.icoon || "event";
+            const kleur = act.kleur || "blue lighten-4";
+            const sheetId = act.spreadsheetId || "";
+            const tabblad = act.tabblad || "Taken";
+
+            let taakLink = "";
+            if (sheetId) {
+              taakLink = `https://docs.google.com/spreadsheets/d/${sheetId}/edit#gid=0`;
+            }
+
+            const card = document.createElement("div");
+            card.className = "col s12 m6 l4";
+            card.innerHTML = `
+              <div class="card ${kleur}">
+                <div class="card-content">
+                  <span class="card-title">
+                    <i class="material-icons left">${icoon}</i>${naam}
+                  </span>
+                  <p>${omschrijving}</p>
+                </div>
+                <div class="card-action">
+                  ${
+                    taakLink
+                      ? `<a href="${taakLink}" target="_blank">Open takenblad</a>`
+                      : `<span class="grey-text">Geen spreadsheet gekoppeld</span>`
+                  }
+                </div>
+              </div>
+            `;
+            container.appendChild(card);
+          });
+        } catch (err) {
+          console.error("Fout bij laden:", err);
+          document.getElementById("activiteiten").innerHTML =
+            "<p class='red-text center-align'>Kon gegevens niet laden.</p>";
+        }
+      }
+
+      fetchActiviteiten();
+    </script>
+  </body>
+</html>
