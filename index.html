@@ -2,116 +2,89 @@
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Master Overzicht</title>
-
-    <!-- Materialize CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Overzicht</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
     />
-
-    <!-- Material Icons -->
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
     />
-
     <style>
-      body {
-        background-color: #fafafa;
-        padding: 10px;
-      }
-      .card {
-        border-radius: 12px;
-      }
-      .card .card-content {
-        min-height: 120px;
-      }
-      .header {
-        text-align: center;
-        margin-top: 15px;
-        margin-bottom: 25px;
-      }
+      body { padding: 20px; background-color: #fafafa; }
+      .card { margin-bottom: 15px; border-radius: 12px; cursor: pointer; }
     </style>
   </head>
-
   <body>
     <div class="container">
-      <h5 class="header">Overzicht</h5>
-      <div id="overview" class="row"></div>
+      <h4>Overzicht</h4>
+      <div id="overzichtContainer" class="row"></div>
     </div>
 
-    <!-- Materialize JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-
     <script>
-      const API_URL =
-        "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+      const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
-      // Data ophalen uit de master spreadsheet (tabblad Overzicht)
-      async function fetchOverview() {
+      async function laadOverzicht() {
         try {
           const res = await fetch(`${API_URL}?type=overzicht`);
-          const data = await res.json();
+          const items = await res.json();
 
-          const container = document.getElementById("overview");
+          const container = document.getElementById("overzichtContainer");
           container.innerHTML = "";
 
-          if (data.length === 0) {
-            container.innerHTML =
-              "<p class='center-align grey-text'>Geen actieve onderdelen gevonden.</p>";
-            return;
-          }
+          items.forEach(item => {
+            // Alleen tonen als Actief TRUE is
+            if (item["Actief"] !== true && item["Actief"] !== "TRUE") return;
 
-          data.forEach((item) => {
-            const icon = item.icoon || "folder";
-            const name = item.naam || "Onbekend";
-            const beschrijving = item.beschrijving || "";
-            const type = item.type || "";
-            const colorClass = "blue lighten-4";
+            const naam = item["Naam"] || "Onbekend";
+            const beschrijving = item["Beschrijving"] || "";
+            const kleur = item["Kleur/Icoon"] || "grey lighten-2";
+            const type = item["Type"] || "";
+            const spreadsheetId = item["Spreadsheet ID"] || "";
+            const tabbladNaam = item["Tabbladnaam"] || "";
 
-            const card = document.createElement("div");
-            card.className = "col s12 m6 l4";
-            card.innerHTML = `
-              <div class="card ${colorClass}">
+            // Bouw de card
+            const cardDiv = document.createElement("div");
+            cardDiv.className = "col s12 m6";
+            cardDiv.innerHTML = `
+              <div class="card ${kleur}">
                 <div class="card-content">
-                  <span class="card-title">
-                    <i class="material-icons left">${icon}</i>${name}
-                  </span>
+                  <span class="card-title">${naam}</span>
                   <p>${beschrijving}</p>
-                </div>
-                <div class="card-action">
-                  <a href="#" onclick="openSection('${type}')">Openen</a>
                 </div>
               </div>
             `;
-            container.appendChild(card);
+
+            // Klik naar juiste pagina afhankelijk van type
+            cardDiv.querySelector(".card").addEventListener("click", () => {
+              if (type === "Activiteiten") {
+                // Activiteiten pagina
+                window.location.href = `activiteiten.html`;
+              } else if (type === "Taken") {
+                // Taken pagina
+                window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
+              } else {
+                // Andere types eventueel extern openen
+                if (spreadsheetId && tabbladNaam) {
+                  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
+                  window.open(url, "_blank");
+                }
+              }
+            });
+
+            container.appendChild(cardDiv);
           });
         } catch (err) {
-          console.error("Fout bij laden:", err);
-          document.getElementById("overview").innerHTML =
-            "<p class='red-text center-align'>Kon gegevens niet laden.</p>";
+          console.error("Fout bij laden overzicht:", err);
+          document.getElementById("overzichtContainer").innerHTML =
+            "<p class='red-text center-align'>Kon overzicht niet laden.</p>";
         }
       }
 
-      // Functie om door te linken (nu nog dummy, later dynamisch)
-      function openSection(type) {
-        if (type === "Activiteiten") {
-          window.location.href = "activiteiten.html";
-        } else if (type === "Financieel") {
-          window.location.href = "financieel.html";
-        } else if (type === "Commissies") {
-          window.location.href = "commissies.html";
-        } else if (type === "Vergaderingen") {
-          window.location.href = "vergaderingen.html";
-        } else {
-          M.toast({ html: "Pagina niet beschikbaar", classes: "red" });
-        }
-      }
-
-      // Laad overzicht bij opstart
-      fetchOverview();
+      document.addEventListener("DOMContentLoaded", laadOverzicht);
     </script>
   </body>
 </html>
