@@ -4,127 +4,113 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Taken</title>
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-  />
-  <link
-    href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    rel="stylesheet"
-  />
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"/>
+
   <style>
     body { padding: 20px; background-color: #fafafa; }
-    .card { min-height: 150px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card {
+      min-height: 150px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
     .card .card-content { flex-grow: 1; }
     .card .card-title i { margin-right: 8px; }
-    .status-select, .priority-select { width: 100%; margin-top: 10px; }
-    #message { text-align: center; margin-top: 30px; font-size: 1.2em; }
-    #backBtn { margin-bottom: 20px; }
+    .card-footer { margin-top: 10px; font-size: 0.9em; color: #555; }
+    .back-button { margin-bottom: 20px; }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <button id="backBtn" class="btn waves-effect waves-light"><i class="material-icons left">arrow_back</i>Vorige</button>
-    <h4 id="activiteitTitel">Taken</h4>
-    <div id="message"></div>
+    <button class="btn back-button" onclick="window.history.back()">
+      <i class="material-icons left">arrow_back</i> Terug
+    </button>
+
+    <h4 id="activiteitNaam">Taken</h4>
     <div id="takenContainer" class="row"></div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
+    // Haal activiteit uit URL
     const urlParams = new URLSearchParams(window.location.search);
-    const activiteitNaam = urlParams.get("activiteit") || "Onbekend";
-    document.getElementById("activiteitTitel").innerText = `Taken: ${activiteitNaam}`;
+    const activiteit = urlParams.get("activiteit") || "";
 
-    document.getElementById("backBtn").addEventListener("click", () => {
-      window.history.back(); // terug naar vorige pagina
-    });
+    document.getElementById("activiteitNaam").textContent = activiteit;
 
-    async function fetchTasks() {
+    async function laadTaken() {
       try {
-        const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteitNaam)}`);
-        const taken = await res.json();
+        const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}`);
+        const items = await res.json();
 
         const container = document.getElementById("takenContainer");
-        const messageDiv = document.getElementById("message");
         container.innerHTML = "";
-        messageDiv.innerText = "";
 
-        if (!taken || taken.length === 0) {
-          messageDiv.innerText = "Geen taken gevonden voor deze activiteit.";
+        if (!items || items.length === 0) {
+          container.innerHTML = "<p class='red-text center-align'>Geen taken gevonden voor deze activiteit.</p>";
           return;
         }
 
-        taken.forEach(taak => {
+        items.forEach(taak => {
+          // Formatteer datum DD/MM/YYYY
+          let deadline = "Geen datum";
+          if (taak.deadline) {
+            const d = new Date(taak.deadline);
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yyyy = d.getFullYear();
+            deadline = `${dd}/${mm}/${yyyy}`;
+          }
+
+          const verantwoordelijke = taak.verantwoordelijke || "Onbekend";
+          const omschrijving = taak.titel || "Geen omschrijving"; // Kolom H
+          const link = taak.link ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
+          const taakId = taak.taakId || "";
+
+          const prioriteit = taak.prioriteit || "";
+          const status = taak.status || "";
+          const belangrijk = taak.belangrijk ? "✔" : "";
+
+          const kleur = "blue lighten-4";
+
           const cardDiv = document.createElement("div");
           cardDiv.className = "col s12 m6 l4";
-
           cardDiv.innerHTML = `
-            <div class="card blue lighten-4" data-taak-id="${taak.taakId}">
+            <div class="card ${kleur}">
               <div class="card-content">
-                <span class="card-title">${taak.titel}</span>
-                <p><strong>Verantwoordelijke:</strong> ${taak.verantwoordelijke}</p>
-                <p><strong>Deadline:</strong> ${taak.deadline}</p>
-                <p><strong>Belangrijk:</strong> <input type="checkbox" class="belangrijk-checkbox" ${taak.belangrijk ? "checked" : ""}></p>
-                <p>
-                  <strong>Prioriteit:</strong>
-                  <select class="priority-select">
-                    <option value="1" ${taak.prioriteit==1?'selected':''}>1</option>
-                    <option value="2" ${taak.prioriteit==2?'selected':''}>2</option>
-                    <option value="3" ${taak.prioriteit==3?'selected':''}>3</option>
-                    <option value="4" ${taak.prioriteit==4?'selected':''}>4</option>
-                    <option value="5" ${taak.prioriteit==5?'selected':''}>5</option>
-                  </select>
-                </p>
-                <p>
-                  <strong>Status:</strong>
-                  <select class="status-select">
-                    <option value="NOK" ${taak.status==='NOK'?'selected':''}>NOK</option>
-                    <option value="Bezig" ${taak.status==='Bezig'?'selected':''}>Bezig</option>
-                    <option value="OK" ${taak.status==='OK'?'selected':''}>OK</option>
-                  </select>
-                </p>
-                <p><strong>Link:</strong> <a href="${taak.link}" target="_blank">${taak.link}</a></p>
+                <span class="card-title">${omschrijving}</span>
+                <p><strong>Deadline:</strong> ${deadline}</p>
+                <p><strong>Verantwoordelijke:</strong> ${verantwoordelijke}</p>
+                <p><strong>Status:</strong> ${status} ${belangrijk}</p>
+                <p><strong>Prioriteit:</strong> ${prioriteit}</p>
+                <p><strong>Bijlage:</strong> ${link}</p>
+                <p class="card-footer"><small>Taak ID: ${taakId}</small></p>
               </div>
             </div>
           `;
 
           container.appendChild(cardDiv);
-
-          const card = cardDiv.querySelector(".card");
-          const statusSelect = card.querySelector(".status-select");
-          const prioritySelect = card.querySelector(".priority-select");
-          const belangrijkCheckbox = card.querySelector(".belangrijk-checkbox");
-
-          // Bidirectioneel update
-          statusSelect.addEventListener("change", () => updateTaak(taak, {status: statusSelect.value}));
-          prioritySelect.addEventListener("change", () => updateTaak(taak, {prioriteit: parseInt(prioritySelect.value)}));
-          belangrijkCheckbox.addEventListener("change", () => updateTaak(taak, {belangrijk: belangrijkCheckbox.checked}));
         });
 
-        // Initialiseer Materialize selects
-        const elems = document.querySelectorAll('select');
-        M.FormSelect.init(elems);
-
-      } catch(err) {
-        console.error("Kon taken niet laden:", err);
-        document.getElementById("message").innerText = "Kon taken niet laden. Controleer je verbinding of spreadsheet instellingen.";
+      } catch (err) {
+        console.error("Fout bij laden taken:", err);
+        document.getElementById("takenContainer").innerHTML =
+          "<p class='red-text center-align'>Kon taken niet laden.</p>";
       }
     }
 
-    async function updateTaak(taak, changes) {
-      changes.taak = { ...taak, ...changes };
-      changes.activiteit = activiteitNaam;
-
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(changes)
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", fetchTasks);
+    document.addEventListener("DOMContentLoaded", laadTaken);
   </script>
 </body>
 </html>
