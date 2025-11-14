@@ -4,105 +4,113 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Taken</title>
-
-  <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"/>
-
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    rel="stylesheet"/>
-
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"
+  />
   <style>
     body { padding: 20px; background-color: #fafafa; }
-    .card {
-      min-height: 150px;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .card .card-content { flex-grow: 1; }
-    .card .card-title i { margin-right: 8px; }
-    .card-footer { margin-top: 10px; font-size: 0.9em; color: #555; }
-    .back-button { margin-bottom: 20px; }
+    .card { border-radius: 12px; margin-bottom: 20px; }
+    .card-content { display: flex; flex-direction: column; }
+    .card-title { display: flex; align-items: center; }
+    .card-title i { margin-right: 8px; }
+    .input-field { margin-top: 10px; }
   </style>
 </head>
-
 <body>
   <div class="container">
-    <button class="btn back-button" onclick="window.history.back()">
-      <i class="material-icons left">arrow_back</i> Terug
-    </button>
-
-    <h4 id="activiteitNaam">Taken</h4>
+    <a href="activiteiten.html" class="btn blue lighten-2">← Vorige</a>
+    <h4 id="activiteitTitel"></h4>
     <div id="takenContainer" class="row"></div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-
   <script>
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
 
     // Haal activiteit uit URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const activiteit = urlParams.get("activiteit") || "";
+    const params = new URLSearchParams(window.location.search);
+    const activiteit = params.get("activiteit");
 
-    document.getElementById("activiteitNaam").textContent = activiteit;
+    document.getElementById("activiteitTitel").textContent = activiteit;
 
-    async function laadTaken() {
+    async function fetchTaken() {
       try {
         const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}`);
-        const items = await res.json();
+        const taken = await res.json();
 
         const container = document.getElementById("takenContainer");
         container.innerHTML = "";
 
-        if (!items || items.length === 0) {
+        if (!taken || taken.length === 0) {
           container.innerHTML = "<p class='red-text center-align'>Geen taken gevonden voor deze activiteit.</p>";
           return;
         }
 
-        items.forEach(taak => {
-          // Formatteer datum DD/MM/YYYY
-          let deadline = "Geen datum";
-          if (taak.deadline) {
-            const d = new Date(taak.deadline);
-            const dd = String(d.getDate()).padStart(2, "0");
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const yyyy = d.getFullYear();
-            deadline = `${dd}/${mm}/${yyyy}`;
-          }
-
-          const verantwoordelijke = taak.verantwoordelijke || "Onbekend";
-          const omschrijving = taak.titel || "Geen omschrijving"; // Kolom H
-          const link = taak.link ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
-          const taakId = taak.taakId || "";
-
-          const prioriteit = taak.prioriteit || "";
-          const status = taak.status || "";
-          const belangrijk = taak.belangrijk ? "✔" : "";
-
-          const kleur = "blue lighten-4";
+        taken.forEach(taak => {
+          const bijlage = taak.link ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
+          const belangrijkChecked = taak.belangrijk ? "checked" : "";
 
           const cardDiv = document.createElement("div");
           cardDiv.className = "col s12 m6 l4";
           cardDiv.innerHTML = `
-            <div class="card ${kleur}">
+            <div class="card blue lighten-4">
               <div class="card-content">
-                <span class="card-title">${omschrijving}</span>
-                <p><strong>Deadline:</strong> ${deadline}</p>
-                <p><strong>Verantwoordelijke:</strong> ${verantwoordelijke}</p>
-                <p><strong>Status:</strong> ${status} ${belangrijk}</p>
-                <p><strong>Prioriteit:</strong> ${prioriteit}</p>
-                <p><strong>Bijlage:</strong> ${link}</p>
-                <p class="card-footer"><small>Taak ID: ${taakId}</small></p>
+                <span class="card-title">${taak.titel}</span>
+                <p><strong>Deadline:</strong> ${taak.deadline}</p>
+                <p><strong>Verantwoordelijke:</strong> ${taak.verantwoordelijke || "Onbekend"}</p>
+
+                <div class="input-field">
+                  <select class="status-select">
+                    <option value="NOK" ${taak.status === "NOK" ? "selected" : ""}>NOK</option>
+                    <option value="Bezig" ${taak.status === "Bezig" ? "selected" : ""}>Bezig</option>
+                    <option value="OK" ${taak.status === "OK" ? "selected" : ""}>OK</option>
+                  </select>
+                  <label>Status</label>
+                </div>
+
+                <div class="input-field">
+                  <select class="prioriteit-select">
+                    <option value="1" ${taak.prioriteit == 1 ? "selected" : ""}>1</option>
+                    <option value="2" ${taak.prioriteit == 2 ? "selected" : ""}>2</option>
+                    <option value="3" ${taak.prioriteit == 3 ? "selected" : ""}>3</option>
+                    <option value="4" ${taak.prioriteit == 4 ? "selected" : ""}>4</option>
+                    <option value="5" ${taak.prioriteit == 5 ? "selected" : ""}>5</option>
+                  </select>
+                  <label>Prioriteit</label>
+                </div>
+
+                <p>
+                  <label>
+                    <input type="checkbox" class="belangrijk-checkbox" ${belangrijkChecked}/>
+                    <span>Belangrijk</span>
+                  </label>
+                </p>
+
+                <p><strong>Bijlage:</strong> ${bijlage}</p>
+                <p><strong>Taak ID:</strong> ${taak.taakId}</p>
               </div>
             </div>
           `;
 
           container.appendChild(cardDiv);
-        });
 
+          // Initialize Materialize select
+          M.FormSelect.init(cardDiv.querySelectorAll('select'));
+
+          // Event listeners voor bidirectionele update
+          const statusSelect = cardDiv.querySelector(".status-select");
+          const prioriteitSelect = cardDiv.querySelector(".prioriteit-select");
+          const belangrijkCheckbox = cardDiv.querySelector(".belangrijk-checkbox");
+
+          statusSelect.addEventListener("change", () => updateTaak(taak.taakId, {status: statusSelect.value}));
+          prioriteitSelect.addEventListener("change", () => updateTaak(taak.taakId, {prioriteit: prioriteitSelect.value}));
+          belangrijkCheckbox.addEventListener("change", () => updateTaak(taak.taakId, {belangrijk: belangrijkCheckbox.checked}));
+        });
       } catch (err) {
         console.error("Fout bij laden taken:", err);
         document.getElementById("takenContainer").innerHTML =
@@ -110,7 +118,17 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", laadTaken);
+    async function updateTaak(taakId, changes) {
+      changes.taakId = taakId;
+      changes.activiteit = activiteit;
+
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ taak: changes, activiteit: activiteit })
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", fetchTaken);
   </script>
 </body>
 </html>
