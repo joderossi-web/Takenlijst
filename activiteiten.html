@@ -14,14 +14,13 @@
   />
   <style>
     body { padding: 20px; background-color: #fafafa; }
-    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 20px;}
+    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
     .card .card-content { flex-grow: 1; }
     .card .card-title i { margin-right: 8px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <a href="index.html" class="btn blue lighten-2">← Vorige</a>
     <h4>Activiteiten</h4>
     <div id="activiteitenContainer" class="row"></div>
   </div>
@@ -39,11 +38,12 @@
         container.innerHTML = "";
 
         items.forEach(item => {
-          const naam = item["Naam Activiteit"] || "Onbekend";
-          const beschrijving = item["Omschrijving"] || "";
-          const icoon = item["Kleur/Icoon"] || "event";
+          const naam = item["naam"] || "Onbekend";
+          const beschrijving = item["omschrijving"] || "";
+          const tabblad = item["tabblad"] || "";
+          const icoon = item["icoon"] || "event";
 
-          const kleur = "blue lighten-3";
+          const kleur = "blue lighten-3"; // standaardkleur
 
           const cardDiv = document.createElement("div");
           cardDiv.className = "col s12 m6 l4";
@@ -57,12 +57,12 @@
           `;
 
           cardDiv.querySelector(".card").addEventListener("click", () => {
-            window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
+            window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}&ssid=${item["ssid"]}&tabblad=${tabblad}`;
           });
 
           container.appendChild(cardDiv);
         });
-      } catch(err) {
+      } catch (err) {
         console.error("Fout bij laden activiteiten:", err);
         document.getElementById("activiteitenContainer").innerHTML =
           "<p class='red-text center-align'>Kon activiteiten niet laden.</p>";
