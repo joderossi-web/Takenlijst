@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-//versie4
+<!-- Versie 4 - aangepast op 14/11/2025 -->
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
@@ -53,7 +53,7 @@
         }
 
         taken.forEach(taak => {
-          const bijlage = taak.link ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
+          const bijlage = taak.link && taak.link !== "Geen bijlage voorzien." ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
           const belangrijkChecked = taak.belangrijk ? "checked" : "";
 
           const cardDiv = document.createElement("div");
@@ -108,9 +108,9 @@
           const prioriteitSelect = cardDiv.querySelector(".prioriteit-select");
           const belangrijkCheckbox = cardDiv.querySelector(".belangrijk-checkbox");
 
-          statusSelect.addEventListener("change", () => updateTaak(taak.taakId, {status: statusSelect.value}));
-          prioriteitSelect.addEventListener("change", () => updateTaak(taak.taakId, {prioriteit: prioriteitSelect.value}));
-          belangrijkCheckbox.addEventListener("change", () => updateTaak(taak.taakId, {belangrijk: belangrijkCheckbox.checked}));
+          statusSelect.addEventListener("change", () => updateTaak(taak));
+          prioriteitSelect.addEventListener("change", () => updateTaak(taak));
+          belangrijkCheckbox.addEventListener("change", () => updateTaak(taak));
         });
       } catch (err) {
         console.error("Fout bij laden taken:", err);
@@ -119,13 +119,18 @@
       }
     }
 
-    async function updateTaak(taakId, changes) {
-      changes.taakId = taakId;
-      changes.activiteit = activiteit;
+    async function updateTaak(taak) {
+      // Verzamel de huidige waarden
+      const card = [...document.querySelectorAll(".card")].find(c => c.querySelector("p strong + p")?.textContent.includes(taak.taakId));
+      if (!card) return;
+
+      taak.status = card.querySelector(".status-select").value;
+      taak.prioriteit = card.querySelector(".prioriteit-select").value;
+      taak.belangrijk = card.querySelector(".belangrijk-checkbox").checked;
 
       await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ taak: changes, activiteit: activiteit })
+        body: JSON.stringify({ taak: taak, activiteit: activiteit })
       });
     }
 
