@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hoofdpagina</title>
+  <title>Overzicht</title>
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
@@ -14,7 +14,7 @@
   />
   <style>
     body { padding: 20px; background-color: #fafafa; }
-    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 20px;}
     .card .card-content { flex-grow: 1; }
     .card .card-title i { margin-right: 8px; }
   </style>
@@ -38,23 +38,18 @@
         container.innerHTML = "";
 
         items.forEach(item => {
-          if (item["Actief"] !== true && item["Actief"] !== "TRUE") return;
-
           const naam = item["Naam"] || "Onbekend";
           const beschrijving = item["Beschrijving"] || "";
-          const type = (item["Type"] || "").toString().trim().toLowerCase();
-          const spreadsheetId = item["Spreadsheet ID"] || "";
-          const tabbladNaam = item["Tabbladnaam"] || "";
-          const icoon = item["Kleur/Icoon"] || "folder";
+          const type = item["Type"] || "";
+          const icoon = item["Kleur/Icoon"] || "event";
 
-          // Kleur per type
-          let kleur = "grey lighten-2"; // fallback
-          switch(type) {
-            case "activiteiten": kleur = "blue lighten-3"; break;
-            case "commissies": kleur = "green lighten-3"; break;
-            case "financieel": kleur = "teal lighten-2"; break;
-            case "vergaderingen": kleur = "purple lighten-3"; break;
-          }
+          const kleurMap = {
+            "Activiteiten": "blue lighten-3",
+            "Commissies": "green lighten-3",
+            "Financieel": "orange lighten-3",
+            "Vergaderingen": "purple lighten-3"
+          };
+          const kleur = kleurMap[type] || "grey lighten-2";
 
           const cardDiv = document.createElement("div");
           cardDiv.className = "col s12 m6 l4";
@@ -68,21 +63,20 @@
           `;
 
           cardDiv.querySelector(".card").addEventListener("click", () => {
-            if (type === "activiteiten") {
+            if(type === "Activiteiten") {
               window.location.href = `activiteiten.html`;
-            } else if (type === "taken") {
-              window.location.href = `taken.html?activiteit=${encodeURIComponent(naam)}`;
-            } else {
-              if (spreadsheetId && tabbladNaam) {
-                const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
-                window.open(url, "_blank");
-              }
+            } else if(type === "Commissies") {
+              // eventueel andere pagina's
+            } else if(type === "Financieel") {
+              // eventueel andere pagina's
+            } else if(type === "Vergaderingen") {
+              // eventueel andere pagina's
             }
           });
 
           container.appendChild(cardDiv);
         });
-      } catch (err) {
+      } catch(err) {
         console.error("Fout bij laden overzicht:", err);
         document.getElementById("overzichtContainer").innerHTML =
           "<p class='red-text center-align'>Kon overzicht niet laden.</p>";
