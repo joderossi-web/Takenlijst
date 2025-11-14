@@ -8,7 +8,10 @@
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
   />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"
+  />
   <style>
     body { padding: 20px; background-color: #fafafa; }
     .card { border-radius: 12px; margin-bottom: 20px; }
@@ -47,7 +50,7 @@
         }
 
         taken.forEach(taak => {
-          const bijlage = taak.bijlage ? `<a href="${taak.bijlage}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
+          const bijlage = taak.link ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
           const belangrijkChecked = taak.belangrijk ? "checked" : "";
 
           const cardDiv = document.createElement("div");
@@ -58,44 +61,40 @@
                 <span class="card-title">${taak.titel}</span>
                 <p><strong>Deadline:</strong> ${taak.deadline}</p>
                 <p><strong>Verantwoordelijke:</strong> ${taak.verantwoordelijke || "Onbekend"}</p>
-                <p><strong>Status:</strong> ${taak.status}</p>
-                <p><strong>Prioriteit:</strong> ${taak.prioriteit}</p>
-                <p><strong>Bijlage:</strong> ${bijlage}</p>
-                <p><strong>Taak ID:</strong> ${taak.taakId}</p>
-
+                <p><strong>Status:</strong></p>
                 <div class="input-field">
                   <select class="status-select">
-                    <option value="NOK" ${taak.status==="NOK"?"selected":""}>NOK</option>
-                    <option value="Bezig" ${taak.status==="Bezig"?"selected":""}>Bezig</option>
-                    <option value="OK" ${taak.status==="OK"?"selected":""}>OK</option>
+                    <option value="NOK" ${taak.status === "NOK" ? "selected" : ""}>NOK</option>
+                    <option value="Bezig" ${taak.status === "Bezig" ? "selected" : ""}>Bezig</option>
+                    <option value="OK" ${taak.status === "OK" ? "selected" : ""}>OK</option>
                   </select>
-                  <label>Status</label>
                 </div>
-
+                <p><strong>Prioriteit:</strong></p>
                 <div class="input-field">
                   <select class="prioriteit-select">
-                    <option value="1" ${taak.prioriteit==1?"selected":""}>1</option>
-                    <option value="2" ${taak.prioriteit==2?"selected":""}>2</option>
-                    <option value="3" ${taak.prioriteit==3?"selected":""}>3</option>
-                    <option value="4" ${taak.prioriteit==4?"selected":""}>4</option>
-                    <option value="5" ${taak.prioriteit==5?"selected":""}>5</option>
+                    <option value="1" ${taak.prioriteit == 1 ? "selected" : ""}>1</option>
+                    <option value="2" ${taak.prioriteit == 2 ? "selected" : ""}>2</option>
+                    <option value="3" ${taak.prioriteit == 3 ? "selected" : ""}>3</option>
+                    <option value="4" ${taak.prioriteit == 4 ? "selected" : ""}>4</option>
+                    <option value="5" ${taak.prioriteit == 5 ? "selected" : ""}>5</option>
                   </select>
-                  <label>Prioriteit</label>
                 </div>
-
                 <p>
                   <label>
                     <input type="checkbox" class="belangrijk-checkbox" ${belangrijkChecked}/>
                     <span>Belangrijk</span>
                   </label>
                 </p>
+                <p><strong>Bijlage:</strong> ${bijlage}</p>
+                <p><strong>Taak ID:</strong> ${taak.taakId}</p>
               </div>
             </div>
           `;
+
           container.appendChild(cardDiv);
+
           M.FormSelect.init(cardDiv.querySelectorAll('select'));
 
-          // Event listeners
           const statusSelect = cardDiv.querySelector(".status-select");
           const prioriteitSelect = cardDiv.querySelector(".prioriteit-select");
           const belangrijkCheckbox = cardDiv.querySelector(".belangrijk-checkbox");
@@ -104,7 +103,6 @@
           prioriteitSelect.addEventListener("change", () => updateTaak(taak.taakId, {prioriteit: prioriteitSelect.value}));
           belangrijkCheckbox.addEventListener("change", () => updateTaak(taak.taakId, {belangrijk: belangrijkCheckbox.checked}));
         });
-
       } catch(err) {
         console.error("Fout bij laden taken:", err);
         document.getElementById("takenContainer").innerHTML =
@@ -116,9 +114,9 @@
       changes.taakId = taakId;
       changes.activiteit = activiteit;
 
-      await fetch(https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec, {
+      await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({taak: changes, activiteit: activiteit})
+        body: JSON.stringify({ taak: changes, activiteit: activiteit })
       });
     }
 
