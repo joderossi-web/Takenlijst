@@ -34,11 +34,14 @@
 
     const params = new URLSearchParams(window.location.search);
     const activiteit = params.get("activiteit");
+    const ssid = params.get("ssid");
+    const tabblad = params.get("tabblad");
+
     document.getElementById("activiteitTitel").textContent = activiteit;
 
     async function fetchTaken() {
       try {
-        const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}`);
+        const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}&ssid=${ssid}&tabblad=${tabblad}`);
         const taken = await res.json();
 
         const container = document.getElementById("takenContainer");
@@ -61,15 +64,17 @@
                 <span class="card-title">${taak.titel}</span>
                 <p><strong>Deadline:</strong> ${taak.deadline}</p>
                 <p><strong>Verantwoordelijke:</strong> ${taak.verantwoordelijke || "Onbekend"}</p>
-                <p><strong>Status:</strong></p>
+                <p><strong>Omschrijving:</strong> ${taak.omschrijving || ""}</p>
+
                 <div class="input-field">
                   <select class="status-select">
                     <option value="NOK" ${taak.status === "NOK" ? "selected" : ""}>NOK</option>
                     <option value="Bezig" ${taak.status === "Bezig" ? "selected" : ""}>Bezig</option>
                     <option value="OK" ${taak.status === "OK" ? "selected" : ""}>OK</option>
                   </select>
+                  <label>Status</label>
                 </div>
-                <p><strong>Prioriteit:</strong></p>
+
                 <div class="input-field">
                   <select class="prioriteit-select">
                     <option value="1" ${taak.prioriteit == 1 ? "selected" : ""}>1</option>
@@ -78,13 +83,16 @@
                     <option value="4" ${taak.prioriteit == 4 ? "selected" : ""}>4</option>
                     <option value="5" ${taak.prioriteit == 5 ? "selected" : ""}>5</option>
                   </select>
+                  <label>Prioriteit</label>
                 </div>
+
                 <p>
                   <label>
                     <input type="checkbox" class="belangrijk-checkbox" ${belangrijkChecked}/>
                     <span>Belangrijk</span>
                   </label>
                 </p>
+
                 <p><strong>Bijlage:</strong> ${bijlage}</p>
                 <p><strong>Taak ID:</strong> ${taak.taakId}</p>
               </div>
@@ -103,7 +111,7 @@
           prioriteitSelect.addEventListener("change", () => updateTaak(taak.taakId, {prioriteit: prioriteitSelect.value}));
           belangrijkCheckbox.addEventListener("change", () => updateTaak(taak.taakId, {belangrijk: belangrijkCheckbox.checked}));
         });
-      } catch(err) {
+      } catch (err) {
         console.error("Fout bij laden taken:", err);
         document.getElementById("takenContainer").innerHTML =
           "<p class='red-text center-align'>Kon taken niet laden.</p>";
