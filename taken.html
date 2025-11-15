@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taken Versie 07 - Chiro Leopoldsburg</title>
+  <title>Taken Versie 09 - Chiro Leopoldsburg</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -15,6 +15,7 @@
     .card { margin-bottom: 20px; }
     .card.red { border-left: 5px solid red; }
     .filter-container { margin-bottom: 20px; }
+    #update-notice { display: none; margin-bottom: 20px; padding: 10px; background-color: #ffeb3b; font-weight: bold; text-align: center; }
 
     /* Statuskleuren */
     .status-nok { color: red; font-weight: bold; }
@@ -31,7 +32,12 @@
   </nav>
 
   <div class="container">
-    <h4 class="center-align">Taken Versie 07</h4>
+    <h4 class="center-align">Taken Versie 09</h4>
+
+    <!-- Update notice -->
+    <div id="update-notice">
+      Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
+    </div>
 
     <div class="filter-container row">
       <div class="input-field col s12 m4">
@@ -61,23 +67,35 @@
     const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec';
 
     let takenData = [];
-    // Hardcoded status dropdown waarden
+    let lastFetchedData = '';
     const statusOptions = ["NOK", "Bezig", "OK"];
 
-    async function fetchTaken() {
-      const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
-      const data = await response.json();
+    async function fetchTaken(showNoticeIfChanged = false) {
+      try {
+        const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
+        const data = await response.json();
 
-      data.forEach(t => {
-        if(t.deadline) {
-          const d = new Date(t.deadline);
-          t.deadline = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+        // Format datum
+        data.forEach(t => {
+          if(t.deadline) {
+            const d = new Date(t.deadline);
+            t.deadline = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+          }
+        });
+
+        // Controleer of er iets veranderd is
+        const dataString = JSON.stringify(data);
+        if(showNoticeIfChanged && dataString !== lastFetchedData) {
+          document.getElementById('update-notice').style.display = 'block';
         }
-      });
+        lastFetchedData = dataString;
 
-      takenData = data;
-      vulFilters();
-      renderTaken();
+        takenData = data;
+        vulFilters();
+        renderTaken();
+      } catch(err) {
+        console.error("Fout bij ophalen taken:", err);
+      }
     }
 
     function vulFilters() {
@@ -85,6 +103,7 @@
       const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
 
       const selectVer = document.getElementById('filterVerantwoordelijke');
+      selectVer.innerHTML = '<option value="" selected>Alle verantwoordelijken</option>';
       verantwoordelijken.forEach(v => {
         const option = document.createElement('option');
         option.value = v;
@@ -93,6 +112,7 @@
       });
 
       const selectCom = document.getElementById('filterCommissie');
+      selectCom.innerHTML = '<option value="" selected>Alle commissies</option>';
       commissies.forEach(c => {
         const option = document.createElement('option');
         option.value = c;
@@ -225,8 +245,17 @@
       .catch(err => console.error(err));
     }
 
+    // Event listener voor refresh knop
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      fetchTaken(false);
+      document.getElementById('update-notice').style.display = 'none';
+    });
+
     // Start de app
     fetchTaken();
+
+    // Polling elke 15 seconden
+    setInterval(() => fetchTaken(true), 15000);
 
   </script>
 
