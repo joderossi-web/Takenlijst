@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 18 - Chiro Leopoldsburg</title>
+<title>Taken Versie 20 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -12,7 +12,7 @@
 body { background-color: #f9fafb; }
 nav { background-color: #c62828; }
 .container { margin-top: 30px; }
-.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; }
+.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; transition: background-color 0.2s; }
 .card-content { padding-bottom: 1rem; }
 .filter-container { margin-bottom: 20px; }
 
@@ -45,7 +45,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 18</h4>
+<h4 class="center-align">Taken Versie 20</h4>
 
 <div class="filter-container row">
   <div class="input-field col s12 m3">
@@ -246,27 +246,50 @@ function renderTaken() {
     container.appendChild(card);
   });
 
+  // Init Materialize selects
   document.querySelectorAll('select.updateSelect').forEach(sel => {
     const instance = M.FormSelect.getInstance(sel);
     if(instance) instance.destroy();
     M.FormSelect.init(sel);
   });
 
+  // Directe event listeners voor snelle kleurupdate
   document.querySelectorAll('.updateCheckbox').forEach(cb => {
-    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
+    cb.addEventListener('change', e => {
+      const taakId = e.target.dataset.taakid;
+      const veld = e.target.dataset.veld;
+      const waarde = e.target.checked;
+      updateVeld(taakId, veld, waarde);
+      const cardDiv = e.target.closest('.card');
+      if(veld === 'markeren'){
+        if(waarde) cardDiv.classList.add('card-markeren');
+        else cardDiv.classList.remove('card-markeren');
+      }
+      if(veld === 'verouderd'){
+        if(waarde) cardDiv.style.opacity = 0.6;
+        else cardDiv.style.opacity = 1;
+      }
+    });
   });
 
   document.querySelectorAll('.updateSelect').forEach(sel => {
     sel.addEventListener('change', e => {
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-      if(sel.classList.contains('status-select')){
-        sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
-        if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
-        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
-        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
+      const taakId = sel.dataset.taakid;
+      const veld = sel.dataset.veld;
+      const waarde = sel.value;
+      updateVeld(taakId, veld, waarde);
+      const cardDiv = sel.closest('.card');
+
+      if(veld === 'status'){
+        cardDiv.classList.remove('green','orange','red','lighten-4');
+        sel.classList.remove('green-text','orange-text','red-text','text-darken-4','text-darken-3');
+        if(waarde==='OK'){ cardDiv.classList.add('green','lighten-4'); sel.classList.add('green-text','text-darken-4'); }
+        else if(waarde==='Bezig'){ cardDiv.classList.add('orange','lighten-4'); sel.classList.add('orange-text','text-darken-3'); }
+        else if(waarde==='NOK'){ cardDiv.classList.add('red','lighten-4'); sel.classList.add('red-text','text-darken-3'); }
       }
-      if(sel.dataset.veld==='prioriteit'){
-        sel.className = `updateSelect prioriteit-${e.target.value}`;
+
+      if(veld==='prioriteit'){
+        sel.className = `updateSelect prioriteit-${waarde}`;
       }
     });
   });
