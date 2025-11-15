@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Taken - Chiro Leopoldsburg</title>
 
-  <!-- Materialize CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
@@ -27,20 +26,15 @@
   </nav>
 
   <div class="container">
-    <h4 class="center-align">Taken</h4>
+    <h4 class="center-align">Taken Versie 01</h4>
 
-    <!-- Filters -->
     <div class="filter-container row">
       <div class="input-field col s12 m4">
-        <select id="filterVerantwoordelijke">
-          <option value="" selected>Alle verantwoordelijken</option>
-        </select>
+        <select id="filterVerantwoordelijke"><option value="" selected>Alle verantwoordelijken</option></select>
         <label>Verantwoordelijke</label>
       </div>
       <div class="input-field col s12 m4">
-        <select id="filterCommissie">
-          <option value="" selected>Alle commissies</option>
-        </select>
+        <select id="filterCommissie"><option value="" selected>Alle commissies</option></select>
         <label>Commissie</label>
       </div>
       <div class="input-field col s12 m4">
@@ -60,14 +54,30 @@
     const tabblad = urlParams.get('tabblad');
 
     // Jouw webapp URL
-    const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec' +
-                   `?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`;
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec';
 
     let takenData = [];
+    let statusOptions = [];
+
+    async function fetchDropdowns() {
+      // Haal statusopties uit tabblad Dropdowns kolom B
+      const res = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=Dropdowns`);
+      const dropdowns = await res.json();
+      statusOptions = dropdowns.map(d => d.status).filter(Boolean);
+    }
 
     async function fetchTaken() {
-      const response = await fetch(apiUrl);
+      const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
       const data = await response.json();
+
+      // Format datum DD/MM/YYYY
+      data.forEach(t => {
+        if(t.deadline) {
+          const d = new Date(t.deadline);
+          t.deadline = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+        }
+      });
+
       takenData = data;
       vulFilters();
       renderTaken();
@@ -110,9 +120,9 @@
       const verbergOk = document.getElementById('filterStatusOk').checked;
 
       const filtered = takenData.filter(t => {
-        if (selectedVer && t.verantwoordelijke !== selectedVer) return false;
-        if (selectedCom && t.commissie !== selectedCom) return false;
-        if (verbergOk && t.status === 'OK') return false;
+        if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
+        if(selectedCom && t.commissie !== selectedCom) return false;
+        if(verbergOk && t.status === 'OK') return false;
         return true;
       });
 
@@ -123,6 +133,7 @@
           <div class="card ${t.markeren ? 'red' : ''}">
             <div class="card-content">
               <span class="card-title">${t.taakomschrijving}</span>
+              <p><strong>Taak ID:</strong> ${t.taakId}</p>
               <p><strong>Deadline:</strong> ${t.deadline || '-'}</p>
 
               <p>
@@ -151,9 +162,7 @@
               <p>
                 <strong>Status:</strong>
                 <select class="updateSelect" data-taakid="${t.taakId}" data-veld="status">
-                  <option value="Nieuw" ${t.status=="Nieuw"?"selected":""}>Nieuw</option>
-                  <option value="In progress" ${t.status=="In progress"?"selected":""}>In progress</option>
-                  <option value="OK" ${t.status=="OK"?"selected":""}>OK</option>
+                  ${statusOptions.map(opt => `<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
                 </select>
               </p>
 
@@ -174,9 +183,8 @@
         container.appendChild(card);
       });
 
-      // Materialize select init
-      const selects = document.querySelectorAll('select.updateSelect');
-      M.FormSelect.init(selects);
+      // Init Materialize select
+      M.FormSelect.init(document.querySelectorAll('select.updateSelect'));
 
       // Event listeners
       document.querySelectorAll('.updateCheckbox').forEach(cb => {
@@ -200,22 +208,18 @@
     }
 
     function updateVeld(taakId, veld, waarde) {
-      fetch('https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec', {
+      fetch(apiUrl, {
         method: 'POST',
-        body: JSON.stringify({
-          spreadsheetId,
-          tabblad,
-          taakId,
-          veld,
-          waarde
-        })
+        body: JSON.stringify({ spreadsheetId, tabblad, taakId, veld, waarde })
       })
       .then(res => res.json())
       .then(res => { if(res.status !== 'ok') console.error(res.message); })
       .catch(err => console.error(err));
     }
 
-    fetchTaken();
+    // Eerst dropdowns ophalen, dan taken
+    fetchDropdowns().then(fetchTaken);
+
   </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
