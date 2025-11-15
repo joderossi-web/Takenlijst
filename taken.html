@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 12 - Chiro Leopoldsburg</title>
+<title>Taken Versie 15 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -12,12 +12,13 @@
 body { background-color: #f9fafb; }
 nav { background-color: #c62828; }
 .container { margin-top: 30px; }
-.card { margin-bottom: 20px; }
+.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; }
 .card-content { padding-bottom: 1rem; }
 .status-ok { color: green; font-weight: bold; }
 .status-bezig { color: orange; font-weight: bold; }
 .status-nok { color: red; font-weight: bold; }
 .taak-id { font-size: 0.8rem; color: #555; margin-top: 10px; text-align: right; }
+.card-markeren { border-left: 5px solid orange; }
 </style>
 </head>
 <body>
@@ -29,7 +30,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 12</h4>
+<h4 class="center-align">Taken Versie 15</h4>
 
 <div class="row filter-container">
   <div class="input-field col s12 m3">
@@ -133,16 +134,85 @@ function renderTaken(){
           <div class="card-content">
             <span class="card-title">${t.taakomschrijving}</span>
             <p><strong>Deadline:</strong> ${t.deadlineFormatted||'-'}</p>
-            <p><strong>Prioriteit:</strong> ${t.prioriteit||'-'}</p>
-            <p><strong>Verantwoordelijke:</strong> ${t.verantwoordelijke||'-'}</p>
-            <p><strong>Status:</strong> ${t.status||'-'}</p>
+
+            <p>
+              <label>
+                <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren?'checked':''}/>
+                <span>Markeren</span>
+              </label>
+            </p>
+
+            <p>
+              <strong>Prioriteit:</strong>
+              <select class="updateSelect" data-taakid="${t.taakId}" data-veld="prioriteit">
+                <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
+                <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
+                <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
+                <option value="4" ${t.prioriteit=="4"?"selected":""}>4</option>
+                <option value="5" ${t.prioriteit=="5"?"selected":""}>5</option>
+              </select>
+            </p>
+
+            <p>
+              <strong>Verantwoordelijke:</strong>
+              <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke||''}">
+            </p>
+
+            <p>
+              <strong>Status:</strong>
+              <select class="updateSelect status-select" data-taakid="${t.taakId}" data-veld="status">
+                ${statusOptions.map(opt=>`<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
+              </select>
+            </p>
+
+            <p>
+              <label>
+                <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd?'checked':''}/>
+                <span>Verouderd</span>
+              </label>
+            </p>
+
             <p><strong>Commissie:</strong> ${t.commissie||'-'}</p>
+            <p><strong>Bijlage:</strong> ${t.bijlage.includes('http')?`<a href="${t.bijlage}" target="_blank">Bekijk bijlage</a>`:t.bijlage||'Geen bijlage voor deze taak.'}</p>
             <p class="taak-id"><strong>Taak ID:</strong> ${t.taakId}</p>
           </div>
         </div>
       </div>
     `);
   });
+
+  document.querySelectorAll('select.updateSelect').forEach(sel=>{
+    const instance = M.FormSelect.getInstance(sel);
+    if(instance) instance.destroy();
+    M.FormSelect.init(sel);
+  });
+
+  document.querySelectorAll('.updateCheckbox').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
+    });
+  });
+
+  document.querySelectorAll('.updateSelect').forEach(sel=>{
+    sel.addEventListener('change', e=>{
+      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+    });
+  });
+
+  document.querySelectorAll('.updateInput').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+    });
+  });
+}
+
+function updateVeld(taakId, veld, waarde){
+  fetch(apiUrl,{
+    method:'POST',
+    body:JSON.stringify({spreadsheetId, tabblad, taakId, veld, waarde})
+  }).then(res=>res.json())
+    .then(res=>{if(res.status!=='ok') console.error(res.message);})
+    .catch(err=>console.error(err));
 }
 
 fetchTaken();
