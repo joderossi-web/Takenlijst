@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 20 - Chiro Leopoldsburg</title>
+<title>Taken Versie 21 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -12,14 +12,9 @@
 body { background-color: #f9fafb; }
 nav { background-color: #c62828; }
 .container { margin-top: 30px; }
-.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; transition: background-color 0.2s; }
+.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; }
 .card-content { padding-bottom: 1rem; }
 .filter-container { margin-bottom: 20px; }
-
-/* Status tekstkleuren */
-.status-ok { color: green; font-weight: bold; }
-.status-bezig { color: orange; font-weight: bold; }
-.status-nok { color: red; font-weight: bold; }
 
 /* Prioriteit kleuren */
 .prioriteit-1 { background-color: #ffffff; }
@@ -27,7 +22,11 @@ nav { background-color: #c62828; }
 .prioriteit-3 { background-color: #ef9a9a; }
 .prioriteit-4 { background-color: #e57373; }
 .prioriteit-5 { background-color: #d32f2f; color: white; }
-.prioriteit-label { padding: 3px 6px; border-radius: 4px; display: inline-block; }
+
+/* Status tekstkleuren */
+.status-OK { color: green !important; font-weight: bold; }
+.status-Bezig { color: orange !important; font-weight: bold; }
+.status-NOK { color: red !important; font-weight: bold; }
 
 /* Gemarkeerd */
 .card-markeren { border-left: 5px solid orange; }
@@ -45,7 +44,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 20</h4>
+<h4 class="center-align">Taken Versie 21</h4>
 
 <div class="filter-container row">
   <div class="input-field col s12 m3">
@@ -60,17 +59,11 @@ nav { background-color: #c62828; }
     <select id="filterPrioriteit"><option value="" selected>Alle prioriteiten</option></select>
     <label>Prioriteit</label>
   </div>
-  <div class="input-field col s12 m3">
-    <label>
-      <input type="checkbox" id="filterStatusOk">
-      <span>Verberg taken met status "OK"</span>
-    </label>
+  <div class="input-field col s12 m2">
+    <label><input type="checkbox" id="filterStatusOk"><span>Verberg "OK"</span></label>
   </div>
-  <div class="input-field col s12 m3">
-    <label>
-      <input type="checkbox" id="filterGemarkeerd">
-      <span>Alleen gemarkeerde taken</span>
-    </label>
+  <div class="input-field col s12 m2">
+    <label><input type="checkbox" id="filterGemarkeerd"><span>Alleen gemarkeerd</span></label>
   </div>
 </div>
 
@@ -92,8 +85,7 @@ function getDeadlineText(deadlineObj) {
   today.setHours(0,0,0,0);
   const deadline = new Date(deadlineObj);
   deadline.setHours(0,0,0,0);
-  const diffTime = deadline - today;
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((deadline - today) / (1000 * 60 * 60 * 24));
   if(diffDays < 0) return `Deadline is met ${Math.abs(diffDays)} dagen overschreden`;
   else if(diffDays === 0) return `Deadline is vandaag!`;
   else return `Deadline is over ${diffDays} dagen`;
@@ -112,10 +104,10 @@ async function fetchTaken() {
       }
     });
 
-    // Werk enkel gewijzigde taken bij op basis van taakId
+    // Update enkel de gewijzigde taak
     data.forEach(t => {
-      const index = takenData.findIndex(old => old.taakId === t.taakId);
-      if(index !== -1) takenData[index] = t; 
+      const i = takenData.findIndex(old => old.taakId === t.taakId);
+      if(i !== -1) takenData[i] = t; 
       else takenData.push(t); 
     });
 
@@ -132,24 +124,23 @@ function vulFilters() {
   const prioriteiten = [...new Set(takenData.map(t => t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
   const selectVer = document.getElementById('filterVerantwoordelijke');
-  selectVer.innerHTML = '<option value="" selected>Alle verantwoordelijken</option>';
-  verantwoordelijken.forEach(v => { const option = document.createElement('option'); option.value=v; option.textContent=v; selectVer.appendChild(option); });
-
   const selectCom = document.getElementById('filterCommissie');
-  selectCom.innerHTML = '<option value="" selected>Alle commissies</option>';
-  commissies.forEach(c => { const option = document.createElement('option'); option.value=c; option.textContent=c; selectCom.appendChild(option); });
-
   const selectPrio = document.getElementById('filterPrioriteit');
+
+  selectVer.innerHTML = '<option value="" selected>Alle verantwoordelijken</option>';
+  verantwoordelijken.forEach(v => selectVer.innerHTML += `<option value="${v}">${v}</option>`);
+
+  selectCom.innerHTML = '<option value="" selected>Alle commissies</option>';
+  commissies.forEach(c => selectCom.innerHTML += `<option value="${c}">${c}</option>`);
+
   selectPrio.innerHTML = '<option value="" selected>Alle prioriteiten</option>';
-  prioriteiten.forEach(p => { const option = document.createElement('option'); option.value=p; option.textContent=p; selectPrio.appendChild(option); });
+  prioriteiten.forEach(p => selectPrio.innerHTML += `<option value="${p}">${p}</option>`);
 
   M.FormSelect.init(selectVer);
   M.FormSelect.init(selectCom);
   M.FormSelect.init(selectPrio);
 
-  selectVer.addEventListener('change', renderTaken);
-  selectCom.addEventListener('change', renderTaken);
-  selectPrio.addEventListener('change', renderTaken);
+  [selectVer, selectCom, selectPrio].forEach(el => el.addEventListener('change', renderTaken));
   document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
   document.getElementById('filterGemarkeerd').addEventListener('change', renderTaken);
 }
@@ -165,6 +156,7 @@ function renderTaken() {
   const alleenGemarkeerd = document.getElementById('filterGemarkeerd').checked;
 
   const today = new Date();
+
   const filtered = takenData.filter(t => {
     if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
     if(selectedCom && t.commissie !== selectedCom) return false;
@@ -178,25 +170,21 @@ function renderTaken() {
     const card = document.createElement('div');
     card.className = 'col s12';
 
-    let cardClass = '';
-    if(t.status==='OK') cardClass = 'green lighten-4';
-    else if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
+    let klas = `prioriteit-${t.prioriteit || 1}`;
 
-    if(t.markeren) card.classList.add('card-markeren');
+    if(t.status === 'OK') klas += ' green lighten-4';
+    else if(t.deadlineObj && today >= t.deadlineObj) klas += ' red lighten-4';
 
-    let statusClass = '';
-    if(t.status==='OK') statusClass='green-text text-darken-4';
-    else if(t.status==='Bezig') statusClass='orange-text text-darken-3';
-    else if(t.status==='NOK') statusClass='red-text text-darken-3';
+    if(t.markeren) klas += ' card-markeren';
 
-    let priorClass = `prioriteit-${t.prioriteit || 1}`;
+    const statusKlas = `status-${t.status}`;
 
     card.innerHTML = `
-      <div class="card ${cardClass}">
+      <div class="card ${klas}">
         <div class="card-content">
           <span class="card-title">${t.taakomschrijving}</span>
           <p><strong>Deadline:</strong> ${t.deadlineFormatted || '-'}<br>
-          <span style="font-weight:bold;">${t.deadlineObj ? getDeadlineText(t.deadlineObj) : ''}</span></p>
+          <span>${t.deadlineObj ? getDeadlineText(t.deadlineObj) : ''}</span></p>
 
           <p>
             <label>
@@ -206,38 +194,24 @@ function renderTaken() {
           </p>
 
           <p>
-            <strong>Prioriteit:</strong>
-            <select class="updateSelect ${priorClass}" data-taakid="${t.taakId}" data-veld="prioriteit">
-              <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
-              <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
-              <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
-              <option value="4" ${t.prioriteit=="4"?"selected":""}>4</option>
-              <option value="5" ${t.prioriteit=="5"?"selected":""}>5</option>
-            </select>
-          </p>
-
-          <p>
-            <strong>Verantwoordelijke:</strong>
-            <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke || ''}">
-          </p>
-
-          <p>
             <strong>Status:</strong>
-            <select class="updateSelect status-select ${statusClass}" data-taakid="${t.taakId}" data-veld="status">
+            <select class="updateSelect ${statusKlas}" data-taakid="${t.taakId}" data-veld="status">
               ${statusOptions.map(opt => `<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
             </select>
           </p>
 
           <p>
-            <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd ? 'checked' : ''}/>
-              <span>Verouderd</span>
-            </label>
+            <strong>Prioriteit:</strong>
+            <select class="updateSelect" data-taakid="${t.taakId}" data-veld="prioriteit">
+              ${[1,2,3,4,5].map(p => `<option value="${p}" ${t.prioriteit==p?"selected":""}>${p}</option>`).join('')}
+            </select>
           </p>
 
-          <p><strong>Commissie:</strong> ${t.commissie || '-'}</p>
-          <p><strong>Bijlage:</strong> ${t.bijlage.includes('http') ? `<a href="${t.bijlage}" target="_blank">Bekijk bijlage</a>` : t.bijlage || 'Geen bijlage voor deze taak.'}</p>
+          <p><strong>Verantwoordelijke:</strong> <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke || ''}"></p>
 
+          <p><strong>Commissie:</strong> ${t.commissie || '-'}</p>
+          <p><strong>Bijlage:</strong> ${t.bijlage.includes('http') ? `<a href="${t.bijlage}" target="_blank">Bekijk bijlage</a>` : t.bijlage || 'Geen bijlage.'}</p>
+          
           <p class="taak-id"><strong>Taak ID:</strong> ${t.taakId}</p>
         </div>
       </div>
@@ -246,51 +220,20 @@ function renderTaken() {
     container.appendChild(card);
   });
 
-  // Init Materialize selects
+  // Herinitialiseer select en checkbox inputs
   document.querySelectorAll('select.updateSelect').forEach(sel => {
     const instance = M.FormSelect.getInstance(sel);
     if(instance) instance.destroy();
     M.FormSelect.init(sel);
   });
 
-  // Directe event listeners voor snelle kleurupdate
   document.querySelectorAll('.updateCheckbox').forEach(cb => {
-    cb.addEventListener('change', e => {
-      const taakId = e.target.dataset.taakid;
-      const veld = e.target.dataset.veld;
-      const waarde = e.target.checked;
-      updateVeld(taakId, veld, waarde);
-      const cardDiv = e.target.closest('.card');
-      if(veld === 'markeren'){
-        if(waarde) cardDiv.classList.add('card-markeren');
-        else cardDiv.classList.remove('card-markeren');
-      }
-      if(veld === 'verouderd'){
-        if(waarde) cardDiv.style.opacity = 0.6;
-        else cardDiv.style.opacity = 1;
-      }
-    });
+    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
   });
 
   document.querySelectorAll('.updateSelect').forEach(sel => {
     sel.addEventListener('change', e => {
-      const taakId = sel.dataset.taakid;
-      const veld = sel.dataset.veld;
-      const waarde = sel.value;
-      updateVeld(taakId, veld, waarde);
-      const cardDiv = sel.closest('.card');
-
-      if(veld === 'status'){
-        cardDiv.classList.remove('green','orange','red','lighten-4');
-        sel.classList.remove('green-text','orange-text','red-text','text-darken-4','text-darken-3');
-        if(waarde==='OK'){ cardDiv.classList.add('green','lighten-4'); sel.classList.add('green-text','text-darken-4'); }
-        else if(waarde==='Bezig'){ cardDiv.classList.add('orange','lighten-4'); sel.classList.add('orange-text','text-darken-3'); }
-        else if(waarde==='NOK'){ cardDiv.classList.add('red','lighten-4'); sel.classList.add('red-text','text-darken-3'); }
-      }
-
-      if(veld==='prioriteit'){
-        sel.className = `updateSelect prioriteit-${waarde}`;
-      }
+      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
     });
   });
 
