@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 19 - Chiro Leopoldsburg</title>
+<title>Taken Versie 18 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -45,7 +45,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 19</h4>
+<h4 class="center-align">Taken Versie 18</h4>
 
 <div class="filter-container row">
   <div class="input-field col s12 m3">
@@ -112,7 +112,13 @@ async function fetchTaken() {
       }
     });
 
-    takenData = data;
+    // Werk enkel gewijzigde taken bij op basis van taakId
+    data.forEach(t => {
+      const index = takenData.findIndex(old => old.taakId === t.taakId);
+      if(index !== -1) takenData[index] = t; 
+      else takenData.push(t); 
+    });
+
     vulFilters();
     renderTaken();
   } catch(err) {
@@ -171,8 +177,19 @@ function renderTaken() {
   filtered.forEach(t => {
     const card = document.createElement('div');
     card.className = 'col s12';
-    let cardClass = t.status === 'OK' ? 'green lighten-4' : (t.deadlineObj && today >= t.deadlineObj) ? 'red lighten-4' : '';
-    const priorClass = `prioriteit-${t.prioriteit || 1}`;
+
+    let cardClass = '';
+    if(t.status==='OK') cardClass = 'green lighten-4';
+    else if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
+
+    if(t.markeren) card.classList.add('card-markeren');
+
+    let statusClass = '';
+    if(t.status==='OK') statusClass='green-text text-darken-4';
+    else if(t.status==='Bezig') statusClass='orange-text text-darken-3';
+    else if(t.status==='NOK') statusClass='red-text text-darken-3';
+
+    let priorClass = `prioriteit-${t.prioriteit || 1}`;
 
     card.innerHTML = `
       <div class="card ${cardClass}">
@@ -191,7 +208,11 @@ function renderTaken() {
           <p>
             <strong>Prioriteit:</strong>
             <select class="updateSelect ${priorClass}" data-taakid="${t.taakId}" data-veld="prioriteit">
-              ${[1,2,3,4,5].map(p => `<option value="${p}" ${t.prioriteit==p?"selected":""}>${p}</option>`).join('')}
+              <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
+              <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
+              <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
+              <option value="4" ${t.prioriteit=="4"?"selected":""}>4</option>
+              <option value="5" ${t.prioriteit=="5"?"selected":""}>5</option>
             </select>
           </p>
 
@@ -202,12 +223,20 @@ function renderTaken() {
 
           <p>
             <strong>Status:</strong>
-            <select class="updateSelect status-select" data-taakid="${t.taakId}" data-veld="status">
+            <select class="updateSelect status-select ${statusClass}" data-taakid="${t.taakId}" data-veld="status">
               ${statusOptions.map(opt => `<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
             </select>
           </p>
 
+          <p>
+            <label>
+              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd ? 'checked' : ''}/>
+              <span>Verouderd</span>
+            </label>
+          </p>
+
           <p><strong>Commissie:</strong> ${t.commissie || '-'}</p>
+          <p><strong>Bijlage:</strong> ${t.bijlage.includes('http') ? `<a href="${t.bijlage}" target="_blank">Bekijk bijlage</a>` : t.bijlage || 'Geen bijlage voor deze taak.'}</p>
 
           <p class="taak-id"><strong>Taak ID:</strong> ${t.taakId}</p>
         </div>
@@ -217,19 +246,28 @@ function renderTaken() {
     container.appendChild(card);
   });
 
-  M.FormSelect.init(document.querySelectorAll('select.updateSelect'));
+  document.querySelectorAll('select.updateSelect').forEach(sel => {
+    const instance = M.FormSelect.getInstance(sel);
+    if(instance) instance.destroy();
+    M.FormSelect.init(sel);
+  });
 
   document.querySelectorAll('.updateCheckbox').forEach(cb => {
-    cb.addEventListener('change', e => {
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
-      updateUiterlijk(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
-    });
+    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
   });
 
   document.querySelectorAll('.updateSelect').forEach(sel => {
     sel.addEventListener('change', e => {
       updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-      updateUiterlijk(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+      if(sel.classList.contains('status-select')){
+        sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
+        if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
+        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
+        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
+      }
+      if(sel.dataset.veld==='prioriteit'){
+        sel.className = `updateSelect prioriteit-${e.target.value}`;
+      }
     });
   });
 
@@ -246,23 +284,6 @@ function updateVeld(taakId, veld, waarde) {
   .then(res => res.json())
   .then(res => { if(res.status!=='ok') console.error(res.message); })
   .catch(err => console.error(err));
-}
-
-function updateUiterlijk(taakId, veld, waarde) {
-  const card = document.querySelector(`[data-taakid="${taakId}"]`).closest('.card');
-  if (!card) return;
-
-  if (veld === "status") {
-    card.classList.remove("green", "lighten-4", "red", "lighten-4");
-    if(waarde === 'OK') card.classList.add('green', 'lighten-4');
-    if(waarde === 'NOK') card.classList.add('red', 'lighten-4');
-  }
-
-  if (veld === "prioriteit") {
-    const select = document.querySelector(`select[data-taakid="${taakId}"][data-veld="prioriteit"]`);
-    [...select.classList].forEach(c => c.startsWith('prioriteit-') && select.classList.remove(c));
-    select.classList.add(`prioriteit-${waarde}`);
-  }
 }
 
 fetchTaken();
