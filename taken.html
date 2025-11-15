@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 13 - Chiro Leopoldsburg</title>
+<title>Taken Versie 14 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -46,7 +46,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 13</h4>
+<h4 class="center-align">Taken Versie 14</h4>
 
 <div id="update-notice">
   Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
@@ -172,7 +172,7 @@ function renderTaken() {
   const filtered = takenData.filter(t => {
     if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
     if(selectedCom && t.commissie !== selectedCom) return false;
-    if(selectedPrio && t.prioriteit !== selectedPrio) return false;
+    if(selectedPrio && String(t.prioriteit) !== selectedPrio) return false; // <- aangepast
     if(verbergOk && t.status === 'OK') return false;
     return true;
   });
