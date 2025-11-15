@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 16 - Chiro Leopoldsburg</title>
+<title>Taken Versie 12 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -12,28 +12,11 @@
 body { background-color: #f9fafb; }
 nav { background-color: #c62828; }
 .container { margin-top: 30px; }
-.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; }
+.card { margin-bottom: 20px; }
 .card-content { padding-bottom: 1rem; }
-.filter-container { margin-bottom: 20px; }
-#update-notice { display: none; margin-bottom: 20px; padding: 10px; background-color: #ffeb3b; font-weight: bold; text-align: center; }
-
-/* Status tekstkleuren */
 .status-ok { color: green; font-weight: bold; }
 .status-bezig { color: orange; font-weight: bold; }
 .status-nok { color: red; font-weight: bold; }
-
-/* Prioriteit kleuren */
-.prioriteit-1 { background-color: #ffffff; }
-.prioriteit-2 { background-color: #ffcdd2; }
-.prioriteit-3 { background-color: #ef9a9a; }
-.prioriteit-4 { background-color: #e57373; }
-.prioriteit-5 { background-color: #d32f2f; color: white; }
-.prioriteit-label { padding: 3px 6px; border-radius: 4px; display: inline-block; }
-
-/* Gemarkeerd */
-.card-markeren { border-left: 5px solid orange; }
-
-/* Taak ID onderaan */
 .taak-id { font-size: 0.8rem; color: #555; margin-top: 10px; text-align: right; }
 </style>
 </head>
@@ -46,35 +29,25 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 16</h4>
+<h4 class="center-align">Taken Versie 12</h4>
 
-<div id="update-notice">
-  Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
-</div>
-
-<div class="filter-container row">
-  <div class="input-field col s12 m2">
+<div class="row filter-container">
+  <div class="input-field col s12 m3">
     <select id="filterVerantwoordelijke"><option value="" selected>Alle verantwoordelijken</option></select>
     <label>Verantwoordelijke</label>
   </div>
-  <div class="input-field col s12 m2">
+  <div class="input-field col s12 m3">
     <select id="filterCommissie"><option value="" selected>Alle commissies</option></select>
     <label>Commissie</label>
   </div>
-  <div class="input-field col s12 m2">
+  <div class="input-field col s12 m3">
     <select id="filterPrioriteit"><option value="" selected>Alle prioriteiten</option></select>
     <label>Prioriteit</label>
   </div>
-  <div class="input-field col s12 m2">
+  <div class="input-field col s12 m3">
     <label>
       <input type="checkbox" id="filterStatusOk">
       <span>Verberg taken met status "OK"</span>
-    </label>
-  </div>
-  <div class="input-field col s12 m2">
-    <label>
-      <input type="checkbox" id="filterGemarkeerd">
-      <span>Toon enkel gemarkeerde taken</span>
     </label>
   </div>
 </div>
@@ -89,41 +62,25 @@ const tabblad = urlParams.get('tabblad');
 const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec';
 const statusOptions = ["NOK","Bezig","OK"];
 let takenData = [];
-let lastFetchedData = '';
 
-function getDeadlineText(deadlineObj) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const deadline = new Date(deadlineObj); deadline.setHours(0,0,0,0);
-  const diffTime = deadline - today;
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  if(diffDays < 0) return `Deadline is met ${Math.abs(diffDays)} dagen overschreden`;
-  if(diffDays === 0) return `Deadline is vandaag!`;
-  return `Deadline is over ${diffDays} dagen`;
+function formatDeadline(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-async function fetchTaken(showNoticeIfChanged=false){
+async function fetchTaken(){
   try{
     const res = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
     const data = await res.json();
-
-    data.forEach(t => {
-      if(t.deadline){ 
-        const d = new Date(t.deadline);
-        t.deadlineFormatted = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-        t.deadlineObj = d;
-      }
-    });
-
-    const dataString = JSON.stringify(data);
-    if(showNoticeIfChanged && dataString !== lastFetchedData) document.getElementById('update-notice').style.display='block';
-    lastFetchedData = dataString;
-
+    data.forEach(t => { t.deadlineFormatted = formatDeadline(t.deadline); });
     takenData = data;
-    renderTaken(); // Alleen kaarten updaten
-  } catch(err){ console.error(err); }
+    renderFilters();
+    renderTaken();
+  }catch(err){ console.error(err); }
 }
 
-function renderFilters() {
+function renderFilters(){
   const selectVer = document.getElementById('filterVerantwoordelijke');
   const selectCom = document.getElementById('filterCommissie');
   const selectPrio = document.getElementById('filterPrioriteit');
@@ -132,156 +89,64 @@ function renderFilters() {
   const commissies = [...new Set(takenData.map(t=>t.commissie).filter(Boolean))];
   const prioriteiten = [...new Set(takenData.map(t=>t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
-  // Voeg alleen nieuwe opties toe indien ze nog niet bestaan
-  verantwoordelijken.forEach(v=>{
-    if(!Array.from(selectVer.options).some(opt=>opt.value===v)) selectVer.appendChild(new Option(v,v));
-  });
-  commissies.forEach(c=>{
-    if(!Array.from(selectCom.options).some(opt=>opt.value===c)) selectCom.appendChild(new Option(c,c));
-  });
-  prioriteiten.forEach(p=>{
-    if(!Array.from(selectPrio.options).some(opt=>opt.value===p)) selectPrio.appendChild(new Option(p,p));
-  });
+  verantwoordelijken.forEach(v=>{ if(!Array.from(selectVer.options).some(opt=>opt.value===v)) selectVer.appendChild(new Option(v,v)); });
+  commissies.forEach(c=>{ if(!Array.from(selectCom.options).some(opt=>opt.value===c)) selectCom.appendChild(new Option(c,c)); });
+  prioriteiten.forEach(p=>{ if(!Array.from(selectPrio.options).some(opt=>opt.value===p)) selectPrio.appendChild(new Option(p,p)); });
 
   M.FormSelect.init(selectVer);
   M.FormSelect.init(selectCom);
   M.FormSelect.init(selectPrio);
-}
 
-// Filters één keer instellen bij pagina load
-document.addEventListener('DOMContentLoaded', ()=>{
-  renderFilters();
-
-  ['filterVerantwoordelijke','filterCommissie','filterPrioriteit',
-   'filterStatusOk','filterGemarkeerd'].forEach(id=>{
+  ['filterVerantwoordelijke','filterCommissie','filterPrioriteit','filterStatusOk'].forEach(id=>{
     document.getElementById(id).addEventListener('change', renderTaken);
   });
-});
+}
 
 function renderTaken(){
   const container = document.getElementById('tasks-container');
+  container.innerHTML = '';
+
   const selectedVer = document.getElementById('filterVerantwoordelijke').value;
   const selectedCom = document.getElementById('filterCommissie').value;
   const selectedPrio = document.getElementById('filterPrioriteit').value;
   const verbergOk = document.getElementById('filterStatusOk').checked;
-  const enkelGemarkeerd = document.getElementById('filterGemarkeerd').checked;
-  const today = new Date();
 
   const filtered = takenData.filter(t=>{
     if(selectedVer && t.verantwoordelijke!==selectedVer) return false;
     if(selectedCom && t.commissie!==selectedCom) return false;
     if(selectedPrio && t.prioriteit!==selectedPrio) return false;
     if(verbergOk && t.status==='OK') return false;
-    if(enkelGemarkeerd && !t.markeren) return false;
     return true;
   });
 
-  filtered.forEach(t=>{
-    let card = document.querySelector(`.task-card[data-taakid="${t.taakId}"]`);
-    if(!card){
-      card = document.createElement('div');
-      card.className='col s12 task-card';
-      card.dataset.taakid = t.taakId;
-      container.appendChild(card);
-    }
+  const today = new Date();
 
+  filtered.forEach(t=>{
+    const deadlineDate = t.deadline?new Date(t.deadline):null;
     let cardClass='';
     if(t.status==='OK') cardClass='green lighten-4';
-    else if(t.deadlineObj && today>=t.deadlineObj) cardClass='red lighten-4';
+    else if(deadlineDate && today>=deadlineDate) cardClass='red lighten-4';
 
-    card.innerHTML = `
-      <div class="card ${cardClass} ${t.markeren?'card-markeren':''}">
-        <div class="card-content">
-          <span class="card-title">${t.taakomschrijving}</span>
-          <p><strong>Deadline:</strong> ${t.deadlineFormatted||'-'}<br>
-          <span style="font-weight:bold;">${t.deadlineObj?getDeadlineText(t.deadlineObj):''}</span></p>
-
-          <p>
-            <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren?'checked':''}/>
-              <span>Markeren</span>
-            </label>
-          </p>
-
-          <p>
-            <strong>Prioriteit:</strong>
-            <select class="updateSelect prioriteit-${t.prioriteit||1}" data-taakid="${t.taakId}" data-veld="prioriteit">
-              <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
-              <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
-              <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
-              <option value="4" ${t.prioriteit=="4"?"selected":""}>4</option>
-              <option value="5" ${t.prioriteit=="5"?"selected":""}>5</option>
-            </select>
-          </p>
-
-          <p>
-            <strong>Verantwoordelijke:</strong>
-            <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke||''}">
-          </p>
-
-          <p>
-            <strong>Status:</strong>
-            <select class="updateSelect status-select" data-taakid="${t.taakId}" data-veld="status">
-              ${statusOptions.map(opt=>`<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
-            </select>
-          </p>
-
-          <p>
-            <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd?'checked':''}/>
-              <span>Verouderd</span>
-            </label>
-          </p>
-
-          <p><strong>Commissie:</strong> ${t.commissie||'-'}</p>
-          <p><strong>Bijlage:</strong> ${t.bijlage.includes('http')?`<a href="${t.bijlage}" target="_blank">Bekijk bijlage</a>`:t.bijlage||'Geen bijlage voor deze taak.'}</p>
-          <p class="taak-id"><strong>Taak ID:</strong> ${t.taakId}</p>
+    container.insertAdjacentHTML('beforeend',`
+      <div class="col s12">
+        <div class="card ${cardClass}">
+          <div class="card-content">
+            <span class="card-title">${t.taakomschrijving}</span>
+            <p><strong>Deadline:</strong> ${t.deadlineFormatted||'-'}</p>
+            <p><strong>Prioriteit:</strong> ${t.prioriteit||'-'}</p>
+            <p><strong>Verantwoordelijke:</strong> ${t.verantwoordelijke||'-'}</p>
+            <p><strong>Status:</strong> ${t.status||'-'}</p>
+            <p><strong>Commissie:</strong> ${t.commissie||'-'}</p>
+            <p class="taak-id"><strong>Taak ID:</strong> ${t.taakId}</p>
+          </div>
         </div>
       </div>
-    `;
-  });
-
-  document.querySelectorAll('select.updateSelect').forEach(sel=>{
-    const instance = M.FormSelect.getInstance(sel);
-    if(instance) instance.destroy();
-    M.FormSelect.init(sel);
-  });
-
-  document.querySelectorAll('.updateCheckbox').forEach(cb=>{
-    cb.addEventListener('change', e=>{
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
-    });
-  });
-
-  document.querySelectorAll('.updateSelect').forEach(sel=>{
-    sel.addEventListener('change', e=>{
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-    });
-  });
-
-  document.querySelectorAll('.updateInput').forEach(inp=>{
-    inp.addEventListener('change', e=>{
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-    });
+    `);
   });
 }
-
-function updateVeld(taakId, veld, waarde){
-  fetch(apiUrl,{
-    method:'POST',
-    body:JSON.stringify({spreadsheetId, tabblad, taakId, veld, waarde})
-  }).then(res=>res.json())
-    .then(res=>{if(res.status!=='ok') console.error(res.message);})
-    .catch(err=>console.error(err));
-}
-
-document.getElementById('refreshBtn').addEventListener('click', ()=>{
-  fetchTaken(false);
-  document.getElementById('update-notice').style.display='none';
-});
 
 fetchTaken();
-setInterval(()=>fetchTaken(true), 15000);
+setInterval(fetchTaken, 15000);
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
