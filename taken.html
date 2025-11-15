@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taken Versie 03 - Chiro Leopoldsburg</title>
+  <title>Taken Versie 04 - Chiro Leopoldsburg</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -15,6 +15,11 @@
     .card { margin-bottom: 20px; }
     .card.red { border-left: 5px solid red; }
     .filter-container { margin-bottom: 20px; }
+
+    /* Statuskleuren */
+    .status-nieuw { color: red; font-weight: bold; }
+    .status-inprogress { color: orange; font-weight: bold; }
+    .status-ok { color: green; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -26,7 +31,7 @@
   </nav>
 
   <div class="container">
-    <h4 class="center-align">Taken Versie 03</h4>
+    <h4 class="center-align">Taken Versie 04</h4>
 
     <div class="filter-container row">
       <div class="input-field col s12 m4">
@@ -126,6 +131,7 @@
       filtered.forEach(t => {
         const card = document.createElement('div');
         card.className = 'col s12';
+        const statusClass = t.status?.toLowerCase().replace(/\s/g,'') || '';
         card.innerHTML = `
           <div class="card ${t.markeren ? 'red' : ''}">
             <div class="card-content">
@@ -158,7 +164,7 @@
 
               <p>
                 <strong>Status:</strong>
-                <select class="updateSelect" data-taakid="${t.taakId}" data-veld="status">
+                <select class="updateSelect status-select ${statusClass}" data-taakid="${t.taakId}" data-veld="status">
                   ${statusOptions.map(opt => `<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
                 </select>
               </p>
@@ -180,14 +186,17 @@
         container.appendChild(card);
       });
 
-      // Initialiseer Materialize select **eenmalig**
-      M.FormSelect.init(document.querySelectorAll('select.updateSelect'));
+      // Materialize select opnieuw initialiseren (destroy oude instances)
+      document.querySelectorAll('select.updateSelect').forEach(sel => {
+        const instance = M.FormSelect.getInstance(sel);
+        if(instance) instance.destroy();
+        M.FormSelect.init(sel);
+      });
 
-      // Event listeners voor checkboxes
+      // Checkbox event listeners
       document.querySelectorAll('.updateCheckbox').forEach(cb => {
         cb.addEventListener('change', e => {
           updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
-          // update kleur voor markeren
           if(e.target.dataset.veld === 'markeren') {
             const card = e.target.closest('.card');
             if(e.target.checked) card.classList.add('red');
@@ -196,14 +205,14 @@
         });
       });
 
-      // Event listeners voor select
+      // Select event listeners
       document.querySelectorAll('.updateSelect').forEach(sel => {
         sel.addEventListener('change', e => {
           updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
         });
       });
 
-      // Event listeners voor input
+      // Input event listeners
       document.querySelectorAll('.updateInput').forEach(inp => {
         inp.addEventListener('change', e => {
           updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
