@@ -1,89 +1,58 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Overzicht</title>
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-  />
-  <link
-    href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    rel="stylesheet"
-  />
-  <style>
-    body { padding: 20px; background-color: #fafafa; }
-    .card { min-height: 150px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 20px;}
-    .card .card-content { flex-grow: 1; }
-    .card .card-title i { margin-right: 8px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chiro Leopoldsburg</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .card-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.2);
+            padding: 20px;
+            width: 250px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+        }
+
+        .card a {
+            text-decoration: none;
+            color: #0066cc;
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h4>Overzicht</h4>
-    <div id="overzichtContainer" class="row"></div>
-  </div>
+    <h1>Chiro Leopoldsburg</h1>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+    <div class="card-container">
+        <div class="card">
+            <a href="activiteiten.html">Activiteiten</a>
+        </div>
+    </div>
 
-    async function laadOverzicht() {
-      try {
-        const res = await fetch(`${API_URL}?type=overzicht`);
-        const items = await res.json();
-
-        const container = document.getElementById("overzichtContainer");
-        container.innerHTML = "";
-
-        items.forEach(item => {
-          const naam = item["Naam"] || "Onbekend";
-          const beschrijving = item["Beschrijving"] || "";
-          const type = item["Type"] || "";
-          const icoon = item["Kleur/Icoon"] || "event";
-
-          const kleurMap = {
-            "Activiteiten": "blue lighten-3",
-            "Commissies": "green lighten-3",
-            "Financieel": "orange lighten-3",
-            "Vergaderingen": "purple lighten-3"
-          };
-          const kleur = kleurMap[type] || "grey lighten-2";
-
-          const cardDiv = document.createElement("div");
-          cardDiv.className = "col s12 m6 l4";
-          cardDiv.innerHTML = `
-            <div class="card ${kleur}">
-              <div class="card-content">
-                <span class="card-title"><i class="material-icons left">${icoon}</i>${naam}</span>
-                <p>${beschrijving}</p>
-              </div>
-            </div>
-          `;
-
-          cardDiv.querySelector(".card").addEventListener("click", () => {
-            if(type === "Activiteiten") {
-              window.location.href = `activiteiten.html`;
-            } else if(type === "Commissies") {
-              // eventueel andere pagina's
-            } else if(type === "Financieel") {
-              // eventueel andere pagina's
-            } else if(type === "Vergaderingen") {
-              // eventueel andere pagina's
-            }
-          });
-
-          container.appendChild(cardDiv);
-        });
-      } catch(err) {
-        console.error("Fout bij laden overzicht:", err);
-        document.getElementById("overzichtContainer").innerHTML =
-          "<p class='red-text center-align'>Kon overzicht niet laden.</p>";
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", laadOverzicht);
-  </script>
 </body>
 </html>
