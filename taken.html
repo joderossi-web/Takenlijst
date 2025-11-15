@@ -1,135 +1,274 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-    <style>
-      body {
-        font-family: Arial, sans-serif;
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taken Versie 19 - Chiro Leopoldsburg</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<style>
+body { background-color: #f9fafb; }
+nav { background-color: #c62828; }
+.container { margin-top: 30px; }
+.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; }
+.card-content { padding-bottom: 1rem; }
+.filter-container { margin-bottom: 20px; }
+
+/* Status tekstkleuren */
+.status-ok { color: green; font-weight: bold; }
+.status-bezig { color: orange; font-weight: bold; }
+.status-nok { color: red; font-weight: bold; }
+
+/* Prioriteit kleuren */
+.prioriteit-1 { background-color: #ffffff; }
+.prioriteit-2 { background-color: #ffcdd2; }
+.prioriteit-3 { background-color: #ef9a9a; }
+.prioriteit-4 { background-color: #e57373; }
+.prioriteit-5 { background-color: #d32f2f; color: white; }
+.prioriteit-label { padding: 3px 6px; border-radius: 4px; display: inline-block; }
+
+/* Gemarkeerd */
+.card-markeren { border-left: 5px solid orange; }
+
+/* Taak ID onderaan */
+.taak-id { font-size: 0.8rem; color: #555; margin-top: 10px; text-align: right; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-wrapper">
+    <a href="index.html" class="brand-logo center">Chiro Leopoldsburg</a>
+  </div>
+</nav>
+
+<div class="container">
+<h4 class="center-align">Taken Versie 19</h4>
+
+<div class="filter-container row">
+  <div class="input-field col s12 m3">
+    <select id="filterVerantwoordelijke"><option value="" selected>Alle verantwoordelijken</option></select>
+    <label>Verantwoordelijke</label>
+  </div>
+  <div class="input-field col s12 m3">
+    <select id="filterCommissie"><option value="" selected>Alle commissies</option></select>
+    <label>Commissie</label>
+  </div>
+  <div class="input-field col s12 m3">
+    <select id="filterPrioriteit"><option value="" selected>Alle prioriteiten</option></select>
+    <label>Prioriteit</label>
+  </div>
+  <div class="input-field col s12 m3">
+    <label>
+      <input type="checkbox" id="filterStatusOk">
+      <span>Verberg taken met status "OK"</span>
+    </label>
+  </div>
+  <div class="input-field col s12 m3">
+    <label>
+      <input type="checkbox" id="filterGemarkeerd">
+      <span>Alleen gemarkeerde taken</span>
+    </label>
+  </div>
+</div>
+
+<div id="tasks-container" class="row"></div>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const spreadsheetId = urlParams.get('spreadsheetId');
+const tabblad = urlParams.get('tabblad');
+
+const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec';
+
+let takenData = [];
+const statusOptions = ["NOK", "Bezig", "OK"];
+
+function getDeadlineText(deadlineObj) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const deadline = new Date(deadlineObj);
+  deadline.setHours(0,0,0,0);
+  const diffTime = deadline - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  if(diffDays < 0) return `Deadline is met ${Math.abs(diffDays)} dagen overschreden`;
+  else if(diffDays === 0) return `Deadline is vandaag!`;
+  else return `Deadline is over ${diffDays} dagen`;
+}
+
+async function fetchTaken() {
+  try {
+    const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
+    const data = await response.json();
+
+    data.forEach(t => {
+      if(t.deadline) {
+        const d = new Date(t.deadline);
+        t.deadlineFormatted = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+        t.deadlineObj = d;
       }
-      .task-card {
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 12px;
-        margin: 8px 0;
-        transition: background-color 0.3s;
-      }
-      .filters-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin-bottom: 16px;
-      }
-      .filter {
-        padding: 4px;
-        font-size: 14px;
-      }
-      label {
-        margin-right: 8px;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>📋 Takenoverzicht – versie 19</h2>
+    });
 
-    <div class="filters-container">
-      <label class="filter">
-        Prioriteit:
-        <select id="filterPrioriteit" onchange="applyFilters()">
-          <option value="">Alle</option>
-          <option value="Laag">Laag</option>
-          <option value="Normaal">Normaal</option>
-          <option value="Hoog">Hoog</option>
-        </select>
-      </label>
-      <label class="filter">
-        Enkel gemarkeerd:
-        <input type="checkbox" id="filterMarked" onchange="applyFilters()">
-      </label>
-    </div>
+    takenData = data;
+    vulFilters();
+    renderTaken();
+  } catch(err) {
+    console.error("Fout bij ophalen taken:", err);
+  }
+}
 
-    <div id="takenContainer"></div>
+function vulFilters() {
+  const verantwoordelijken = [...new Set(takenData.map(t => t.verantwoordelijke).filter(Boolean))];
+  const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
+  const prioriteiten = [...new Set(takenData.map(t => t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
-    <script>
-      let allTaken = [];
-      let currentFilters = {};
+  const selectVer = document.getElementById('filterVerantwoordelijke');
+  selectVer.innerHTML = '<option value="" selected>Alle verantwoordelijken</option>';
+  verantwoordelijken.forEach(v => { const option = document.createElement('option'); option.value=v; option.textContent=v; selectVer.appendChild(option); });
 
-      function renderTaken(taken) {
-        const container = document.getElementById("takenContainer");
-        const markedFilter = document.getElementById("filterMarked").checked;
-        container.innerHTML = '';
+  const selectCom = document.getElementById('filterCommissie');
+  selectCom.innerHTML = '<option value="" selected>Alle commissies</option>';
+  commissies.forEach(c => { const option = document.createElement('option'); option.value=c; option.textContent=c; selectCom.appendChild(option); });
 
-        taken.forEach(taak => {
-          if (markedFilter && !taak.Marked) return;
-          const card = document.createElement("div");
-          card.className = "task-card";
-          card.dataset.taskId = taak.ID;
+  const selectPrio = document.getElementById('filterPrioriteit');
+  selectPrio.innerHTML = '<option value="" selected>Alle prioriteiten</option>';
+  prioriteiten.forEach(p => { const option = document.createElement('option'); option.value=p; option.textContent=p; selectPrio.appendChild(option); });
 
-          card.style.backgroundColor = taak.Kleur || "#FFFFFF";
+  M.FormSelect.init(selectVer);
+  M.FormSelect.init(selectCom);
+  M.FormSelect.init(selectPrio);
 
-          card.innerHTML = `
-            <strong>${taak.Taak}</strong><br>
-            Prioriteit: 
-            <select onchange="updateTaak(${taak.ID}, 'Prioriteit', this.value)">
-              <option value="Laag" ${taak.Prioriteit === 'Laag' ? 'selected' : ''}>Laag</option>
-              <option value="Normaal" ${taak.Prioriteit === 'Normaal' ? 'selected' : ''}>Normaal</option>
-              <option value="Hoog" ${taak.Prioriteit === 'Hoog' ? 'selected' : ''}>Hoog</option>
-            </select><br>
-            
-            Status: 
-            <select onchange="updateTaak(${taak.ID}, 'Status', this.value)">
-              <option value="Nieuw" ${taak.Status === 'Nieuw' ? 'selected' : ''}>Nieuw</option>
-              <option value="In uitvoering" ${taak.Status === 'In uitvoering' ? 'selected' : ''}>In uitvoering</option>
-              <option value="OK" ${taak.Status === 'OK' ? 'selected' : ''}>OK</option>
-            </select><br>
-            
-            Markeren: 
-            <input type="checkbox" ${taak.Marked ? 'checked' : ''} onclick="updateTaak(${taak.ID}, 'Marked', this.checked)">
-          `;
-          container.appendChild(card);
-        });
-      }
+  selectVer.addEventListener('change', renderTaken);
+  selectCom.addEventListener('change', renderTaken);
+  selectPrio.addEventListener('change', renderTaken);
+  document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
+  document.getElementById('filterGemarkeerd').addEventListener('change', renderTaken);
+}
 
-      function updateTaak(id, veld, waarde) {
-        google.script.run.withSuccessHandler(updatedTaak => {
-          const kaart = document.querySelector(`.task-card[data-task-id="${id}"]`);
-          if (kaart && updatedTaak.Kleur) {
-            kaart.style.backgroundColor = updatedTaak.Kleur;
-          }
-        }).updateTaak(id, veld, waarde);
-      }
+function renderTaken() {
+  const container = document.getElementById('tasks-container');
+  container.innerHTML = '';
 
-      function applyFilters() {
-        currentFilters = {
-          prioriteit: document.getElementById("filterPrioriteit").value,
-          marked: document.getElementById("filterMarked").checked
-        };
-        renderTaken(applyFilterLogic(allTaken));
-      }
+  const selectedVer = document.getElementById('filterVerantwoordelijke').value;
+  const selectedCom = document.getElementById('filterCommissie').value;
+  const selectedPrio = document.getElementById('filterPrioriteit').value;
+  const verbergOk = document.getElementById('filterStatusOk').checked;
+  const alleenGemarkeerd = document.getElementById('filterGemarkeerd').checked;
 
-      function applyFilterLogic(taken) {
-        return taken.filter(taak => {
-          if (currentFilters.prioriteit && taak.Prioriteit !== currentFilters.prioriteit) return false;
-          if (currentFilters.marked && !taak.Marked) return false;
-          return true;
-        });
-      }
+  const today = new Date();
+  const filtered = takenData.filter(t => {
+    if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
+    if(selectedCom && t.commissie !== selectedCom) return false;
+    if(selectedPrio && String(t.prioriteit) !== selectedPrio) return false;
+    if(verbergOk && t.status === 'OK') return false;
+    if(alleenGemarkeerd && !t.markeren) return false;
+    return true;
+  });
 
-      function periodicUpdate() {
-        google.script.run.withSuccessHandler(data => {
-          data.forEach(updatedTaak => {
-            const index = allTaken.findIndex(t => t.ID === updatedTaak.ID);
-            if (index > -1) allTaken[index] = updatedTaak;
-          });
-          renderTaken(applyFilterLogic(allTaken));
-        }).getTaken();
-      }
+  filtered.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'col s12';
+    let cardClass = t.status === 'OK' ? 'green lighten-4' : (t.deadlineObj && today >= t.deadlineObj) ? 'red lighten-4' : '';
+    const priorClass = `prioriteit-${t.prioriteit || 1}`;
 
-      google.script.run.withSuccessHandler(data => {
-        allTaken = data;
-        renderTaken(allTaken);
-      }).getTaken();
+    card.innerHTML = `
+      <div class="card ${cardClass}">
+        <div class="card-content">
+          <span class="card-title">${t.taakomschrijving}</span>
+          <p><strong>Deadline:</strong> ${t.deadlineFormatted || '-'}<br>
+          <span style="font-weight:bold;">${t.deadlineObj ? getDeadlineText(t.deadlineObj) : ''}</span></p>
 
-      setInterval(periodicUpdate, 15000);
-    </script>
-  </body>
+          <p>
+            <label>
+              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren ? 'checked' : ''}/>
+              <span>Markeren</span>
+            </label>
+          </p>
+
+          <p>
+            <strong>Prioriteit:</strong>
+            <select class="updateSelect ${priorClass}" data-taakid="${t.taakId}" data-veld="prioriteit">
+              ${[1,2,3,4,5].map(p => `<option value="${p}" ${t.prioriteit==p?"selected":""}>${p}</option>`).join('')}
+            </select>
+          </p>
+
+          <p>
+            <strong>Verantwoordelijke:</strong>
+            <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke || ''}">
+          </p>
+
+          <p>
+            <strong>Status:</strong>
+            <select class="updateSelect status-select" data-taakid="${t.taakId}" data-veld="status">
+              ${statusOptions.map(opt => `<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
+            </select>
+          </p>
+
+          <p><strong>Commissie:</strong> ${t.commissie || '-'}</p>
+
+          <p class="taak-id"><strong>Taak ID:</strong> ${t.taakId}</p>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  M.FormSelect.init(document.querySelectorAll('select.updateSelect'));
+
+  document.querySelectorAll('.updateCheckbox').forEach(cb => {
+    cb.addEventListener('change', e => {
+      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
+      updateUiterlijk(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
+    });
+  });
+
+  document.querySelectorAll('.updateSelect').forEach(sel => {
+    sel.addEventListener('change', e => {
+      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+      updateUiterlijk(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+    });
+  });
+
+  document.querySelectorAll('.updateInput').forEach(inp => {
+    inp.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value));
+  });
+}
+
+function updateVeld(taakId, veld, waarde) {
+  fetch(apiUrl, {
+    method: 'POST',
+    body: JSON.stringify({ spreadsheetId, tabblad, taakId, veld, waarde })
+  })
+  .then(res => res.json())
+  .then(res => { if(res.status!=='ok') console.error(res.message); })
+  .catch(err => console.error(err));
+}
+
+function updateUiterlijk(taakId, veld, waarde) {
+  const card = document.querySelector(`[data-taakid="${taakId}"]`).closest('.card');
+  if (!card) return;
+
+  if (veld === "status") {
+    card.classList.remove("green", "lighten-4", "red", "lighten-4");
+    if(waarde === 'OK') card.classList.add('green', 'lighten-4');
+    if(waarde === 'NOK') card.classList.add('red', 'lighten-4');
+  }
+
+  if (veld === "prioriteit") {
+    const select = document.querySelector(`select[data-taakid="${taakId}"][data-veld="prioriteit"]`);
+    [...select.classList].forEach(c => c.startsWith('prioriteit-') && select.classList.remove(c));
+    select.classList.add(`prioriteit-${waarde}`);
+  }
+}
+
+fetchTaken();
+setInterval(fetchTaken, 15000);
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</body>
 </html>
