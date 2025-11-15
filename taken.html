@@ -1,134 +1,223 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Taken</title>
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
-  />
-  <link
-    href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    rel="stylesheet"
-  />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taken - Chiro Leopoldsburg</title>
+
+  <!-- Materialize CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
   <style>
-    body { padding: 20px; background-color: #fafafa; }
-    .card { border-radius: 12px; margin-bottom: 20px; }
-    .card-content { display: flex; flex-direction: column; }
-    .card-title { display: flex; align-items: center; }
-    .card-title i { margin-right: 8px; }
-    .input-field { margin-top: 10px; }
+    body { background-color: #f9fafb; }
+    nav { background-color: #c62828; }
+    .container { margin-top: 30px; }
+    .card { margin-bottom: 20px; }
+    .card.red { border-left: 5px solid red; }
+    .filter-container { margin-bottom: 20px; }
   </style>
 </head>
 <body>
+
+  <nav>
+    <div class="nav-wrapper">
+      <a href="index.html" class="brand-logo center">Chiro Leopoldsburg</a>
+    </div>
+  </nav>
+
   <div class="container">
-    <a href="activiteiten.html" class="btn blue lighten-2">← Vorige</a>
-    <h4 id="activiteitTitel"></h4>
-    <div id="takenContainer" class="row"></div>
+    <h4 class="center-align">Taken</h4>
+
+    <!-- Filters -->
+    <div class="filter-container row">
+      <div class="input-field col s12 m4">
+        <select id="filterVerantwoordelijke">
+          <option value="" selected>Alle verantwoordelijken</option>
+        </select>
+        <label>Verantwoordelijke</label>
+      </div>
+      <div class="input-field col s12 m4">
+        <select id="filterCommissie">
+          <option value="" selected>Alle commissies</option>
+        </select>
+        <label>Commissie</label>
+      </div>
+      <div class="input-field col s12 m4">
+        <label>
+          <input type="checkbox" id="filterStatusOk">
+          <span>Verberg taken met status "OK"</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="tasks-container" class="row"></div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwxPaOoQOKFevEitDGlihL2Qp1pRu_Djhj1LsIH4--AtDVno265bMRHmFezc9DF9FexFQ/exec";
+    const urlParams = new URLSearchParams(window.location.search);
+    const spreadsheetId = urlParams.get('spreadsheetId');
+    const tabblad = urlParams.get('tabblad');
 
-    const params = new URLSearchParams(window.location.search);
-    const activiteit = params.get("activiteit");
-    const ssid = params.get("ssid");
-    const tabblad = params.get("tabblad");
+    // Jouw webapp URL
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec' +
+                   `?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`;
 
-    document.getElementById("activiteitTitel").textContent = activiteit;
+    let takenData = [];
 
     async function fetchTaken() {
-      try {
-        const res = await fetch(`${API_URL}?type=taken&activiteit=${encodeURIComponent(activiteit)}&ssid=${ssid}&tabblad=${tabblad}`);
-        const taken = await res.json();
-
-        const container = document.getElementById("takenContainer");
-        container.innerHTML = "";
-
-        if (!taken || taken.length === 0) {
-          container.innerHTML = "<p class='red-text center-align'>Geen taken gevonden voor deze activiteit.</p>";
-          return;
-        }
-
-        taken.forEach(taak => {
-          const bijlage = taak.link ? `<a href="${taak.link}" target="_blank">Bekijk bijlage</a>` : "Geen bijlage voorzien.";
-          const belangrijkChecked = taak.belangrijk ? "checked" : "";
-
-          const cardDiv = document.createElement("div");
-          cardDiv.className = "col s12 m6 l4";
-          cardDiv.innerHTML = `
-            <div class="card blue lighten-4">
-              <div class="card-content">
-                <span class="card-title">${taak.titel}</span>
-                <p><strong>Deadline:</strong> ${taak.deadline}</p>
-                <p><strong>Verantwoordelijke:</strong> ${taak.verantwoordelijke || "Onbekend"}</p>
-                <p><strong>Omschrijving:</strong> ${taak.omschrijving || ""}</p>
-
-                <div class="input-field">
-                  <select class="status-select">
-                    <option value="NOK" ${taak.status === "NOK" ? "selected" : ""}>NOK</option>
-                    <option value="Bezig" ${taak.status === "Bezig" ? "selected" : ""}>Bezig</option>
-                    <option value="OK" ${taak.status === "OK" ? "selected" : ""}>OK</option>
-                  </select>
-                  <label>Status</label>
-                </div>
-
-                <div class="input-field">
-                  <select class="prioriteit-select">
-                    <option value="1" ${taak.prioriteit == 1 ? "selected" : ""}>1</option>
-                    <option value="2" ${taak.prioriteit == 2 ? "selected" : ""}>2</option>
-                    <option value="3" ${taak.prioriteit == 3 ? "selected" : ""}>3</option>
-                    <option value="4" ${taak.prioriteit == 4 ? "selected" : ""}>4</option>
-                    <option value="5" ${taak.prioriteit == 5 ? "selected" : ""}>5</option>
-                  </select>
-                  <label>Prioriteit</label>
-                </div>
-
-                <p>
-                  <label>
-                    <input type="checkbox" class="belangrijk-checkbox" ${belangrijkChecked}/>
-                    <span>Belangrijk</span>
-                  </label>
-                </p>
-
-                <p><strong>Bijlage:</strong> ${bijlage}</p>
-                <p><strong>Taak ID:</strong> ${taak.taakId}</p>
-              </div>
-            </div>
-          `;
-
-          container.appendChild(cardDiv);
-
-          M.FormSelect.init(cardDiv.querySelectorAll('select'));
-
-          const statusSelect = cardDiv.querySelector(".status-select");
-          const prioriteitSelect = cardDiv.querySelector(".prioriteit-select");
-          const belangrijkCheckbox = cardDiv.querySelector(".belangrijk-checkbox");
-
-          statusSelect.addEventListener("change", () => updateTaak(taak.taakId, {status: statusSelect.value}));
-          prioriteitSelect.addEventListener("change", () => updateTaak(taak.taakId, {prioriteit: prioriteitSelect.value}));
-          belangrijkCheckbox.addEventListener("change", () => updateTaak(taak.taakId, {belangrijk: belangrijkCheckbox.checked}));
-        });
-      } catch (err) {
-        console.error("Fout bij laden taken:", err);
-        document.getElementById("takenContainer").innerHTML =
-          "<p class='red-text center-align'>Kon taken niet laden.</p>";
-      }
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      takenData = data;
+      vulFilters();
+      renderTaken();
     }
 
-    async function updateTaak(taakId, changes) {
-      changes.taakId = taakId;
-      changes.activiteit = activiteit;
+    function vulFilters() {
+      const verantwoordelijken = [...new Set(takenData.map(t => t.verantwoordelijke).filter(Boolean))];
+      const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
 
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ taak: changes, activiteit: activiteit })
+      const selectVer = document.getElementById('filterVerantwoordelijke');
+      verantwoordelijken.forEach(v => {
+        const option = document.createElement('option');
+        option.value = v;
+        option.textContent = v;
+        selectVer.appendChild(option);
+      });
+
+      const selectCom = document.getElementById('filterCommissie');
+      commissies.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c;
+        option.textContent = c;
+        selectCom.appendChild(option);
+      });
+
+      M.FormSelect.init(selectVer);
+      M.FormSelect.init(selectCom);
+
+      selectVer.addEventListener('change', renderTaken);
+      selectCom.addEventListener('change', renderTaken);
+      document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
+    }
+
+    function renderTaken() {
+      const container = document.getElementById('tasks-container');
+      container.innerHTML = '';
+
+      const selectedVer = document.getElementById('filterVerantwoordelijke').value;
+      const selectedCom = document.getElementById('filterCommissie').value;
+      const verbergOk = document.getElementById('filterStatusOk').checked;
+
+      const filtered = takenData.filter(t => {
+        if (selectedVer && t.verantwoordelijke !== selectedVer) return false;
+        if (selectedCom && t.commissie !== selectedCom) return false;
+        if (verbergOk && t.status === 'OK') return false;
+        return true;
+      });
+
+      filtered.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'col s12';
+        card.innerHTML = `
+          <div class="card ${t.markeren ? 'red' : ''}">
+            <div class="card-content">
+              <span class="card-title">${t.taakomschrijving}</span>
+              <p><strong>Deadline:</strong> ${t.deadline || '-'}</p>
+
+              <p>
+                <label>
+                  <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren ? 'checked' : ''}/>
+                  <span>Markeren</span>
+                </label>
+              </p>
+
+              <p>
+                <strong>Prioriteit:</strong>
+                <select class="updateSelect" data-taakid="${t.taakId}" data-veld="prioriteit">
+                  <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
+                  <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
+                  <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
+                  <option value="4" ${t.prioriteit=="4"?"selected":""}>4</option>
+                  <option value="5" ${t.prioriteit=="5"?"selected":""}>5</option>
+                </select>
+              </p>
+
+              <p>
+                <strong>Verantwoordelijke:</strong>
+                <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke || ''}">
+              </p>
+
+              <p>
+                <strong>Status:</strong>
+                <select class="updateSelect" data-taakid="${t.taakId}" data-veld="status">
+                  <option value="Nieuw" ${t.status=="Nieuw"?"selected":""}>Nieuw</option>
+                  <option value="In progress" ${t.status=="In progress"?"selected":""}>In progress</option>
+                  <option value="OK" ${t.status=="OK"?"selected":""}>OK</option>
+                </select>
+              </p>
+
+              <p>
+                <label>
+                  <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd ? 'checked' : ''}/>
+                  <span>Verouderd</span>
+                </label>
+              </p>
+
+              <p><strong>Commissie:</strong> ${t.commissie || '-'}</p>
+              <p><strong>Bijlage:</strong> ${t.bijlage.includes('http') 
+                ? `<a href="${t.bijlage}" target="_blank">Bekijk bijlage</a>` 
+                : t.bijlage}</p>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Materialize select init
+      const selects = document.querySelectorAll('select.updateSelect');
+      M.FormSelect.init(selects);
+
+      // Event listeners
+      document.querySelectorAll('.updateCheckbox').forEach(cb => {
+        cb.addEventListener('change', e => {
+          updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked);
+          renderTaken(); // kaartkleur bij markeren bijwerken
+        });
+      });
+
+      document.querySelectorAll('.updateSelect').forEach(sel => {
+        sel.addEventListener('change', e => {
+          updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+        });
+      });
+
+      document.querySelectorAll('.updateInput').forEach(inp => {
+        inp.addEventListener('change', e => {
+          updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+        });
       });
     }
 
-    document.addEventListener("DOMContentLoaded", fetchTaken);
+    function updateVeld(taakId, veld, waarde) {
+      fetch('https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec', {
+        method: 'POST',
+        body: JSON.stringify({
+          spreadsheetId,
+          tabblad,
+          taakId,
+          veld,
+          waarde
+        })
+      })
+      .then(res => res.json())
+      .then(res => { if(res.status !== 'ok') console.error(res.message); })
+      .catch(err => console.error(err));
+    }
+
+    fetchTaken();
   </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
