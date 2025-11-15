@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 12 - Chiro Leopoldsburg</title>
+<title>Taken Versie 13 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -12,7 +12,7 @@
 body { background-color: #f9fafb; }
 nav { background-color: #c62828; }
 .container { margin-top: 30px; }
-.card { margin-bottom: 20px; position: relative; }
+.card { margin-bottom: 20px; position: relative; border-left: 5px solid transparent; }
 .card-content { padding-bottom: 1rem; }
 .filter-container { margin-bottom: 20px; }
 #update-notice { display: none; margin-bottom: 20px; padding: 10px; background-color: #ffeb3b; font-weight: bold; text-align: center; }
@@ -30,6 +30,9 @@ nav { background-color: #c62828; }
 .prioriteit-5 { background-color: #d32f2f; color: white; }
 .prioriteit-label { padding: 3px 6px; border-radius: 4px; display: inline-block; }
 
+/* Gemarkeerd */
+.card-markeren { border-left: 5px solid orange; }
+
 /* Taak ID onderaan */
 .taak-id { font-size: 0.8rem; color: #555; margin-top: 10px; text-align: right; }
 </style>
@@ -43,22 +46,26 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 12</h4>
+<h4 class="center-align">Taken Versie 13</h4>
 
 <div id="update-notice">
   Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
 </div>
 
 <div class="filter-container row">
-  <div class="input-field col s12 m4">
+  <div class="input-field col s12 m3">
     <select id="filterVerantwoordelijke"><option value="" selected>Alle verantwoordelijken</option></select>
     <label>Verantwoordelijke</label>
   </div>
-  <div class="input-field col s12 m4">
+  <div class="input-field col s12 m3">
     <select id="filterCommissie"><option value="" selected>Alle commissies</option></select>
     <label>Commissie</label>
   </div>
-  <div class="input-field col s12 m4">
+  <div class="input-field col s12 m3">
+    <select id="filterPrioriteit"><option value="" selected>Alle prioriteiten</option></select>
+    <label>Prioriteit</label>
+  </div>
+  <div class="input-field col s12 m3">
     <label>
       <input type="checkbox" id="filterStatusOk">
       <span>Verberg taken met status "OK"</span>
@@ -128,23 +135,27 @@ async function fetchTaken(showNoticeIfChanged = false) {
 function vulFilters() {
   const verantwoordelijken = [...new Set(takenData.map(t => t.verantwoordelijke).filter(Boolean))];
   const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
+  const prioriteiten = [...new Set(takenData.map(t => t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
   const selectVer = document.getElementById('filterVerantwoordelijke');
   selectVer.innerHTML = '<option value="" selected>Alle verantwoordelijken</option>';
-  verantwoordelijken.forEach(v => {
-    const option = document.createElement('option');
-    option.value = v; option.textContent = v; selectVer.appendChild(option);
-  });
+  verantwoordelijken.forEach(v => { const option = document.createElement('option'); option.value=v; option.textContent=v; selectVer.appendChild(option); });
 
   const selectCom = document.getElementById('filterCommissie');
   selectCom.innerHTML = '<option value="" selected>Alle commissies</option>';
-  commissies.forEach(c => { const option = document.createElement('option'); option.value = c; option.textContent = c; selectCom.appendChild(option); });
+  commissies.forEach(c => { const option = document.createElement('option'); option.value=c; option.textContent=c; selectCom.appendChild(option); });
+
+  const selectPrio = document.getElementById('filterPrioriteit');
+  selectPrio.innerHTML = '<option value="" selected>Alle prioriteiten</option>';
+  prioriteiten.forEach(p => { const option = document.createElement('option'); option.value=p; option.textContent=p; selectPrio.appendChild(option); });
 
   M.FormSelect.init(selectVer);
   M.FormSelect.init(selectCom);
+  M.FormSelect.init(selectPrio);
 
   selectVer.addEventListener('change', renderTaken);
   selectCom.addEventListener('change', renderTaken);
+  selectPrio.addEventListener('change', renderTaken);
   document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
 }
 
@@ -154,12 +165,14 @@ function renderTaken() {
 
   const selectedVer = document.getElementById('filterVerantwoordelijke').value;
   const selectedCom = document.getElementById('filterCommissie').value;
+  const selectedPrio = document.getElementById('filterPrioriteit').value;
   const verbergOk = document.getElementById('filterStatusOk').checked;
 
   const today = new Date();
   const filtered = takenData.filter(t => {
     if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
     if(selectedCom && t.commissie !== selectedCom) return false;
+    if(selectedPrio && t.prioriteit !== selectedPrio) return false;
     if(verbergOk && t.status === 'OK') return false;
     return true;
   });
@@ -171,7 +184,8 @@ function renderTaken() {
     let cardClass = '';
     if(t.status==='OK') cardClass = 'green lighten-4';
     else if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
-    if(t.markeren) cardClass = 'red lighten-4';
+
+    if(t.markeren) card.classList.add('card-markeren');
 
     let statusClass = '';
     if(t.status==='OK') statusClass='green-text text-darken-4';
