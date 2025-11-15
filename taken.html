@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 14 - Chiro Leopoldsburg</title>
+<title>Taken Versie 15 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -46,7 +46,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 14</h4>
+<h4 class="center-align">Taken Versie 15</h4>
 
 <div id="update-notice">
   Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
@@ -69,6 +69,11 @@ nav { background-color: #c62828; }
     <label>
       <input type="checkbox" id="filterStatusOk">
       <span>Verberg taken met status "OK"</span>
+    </label>
+    <br>
+    <label>
+      <input type="checkbox" id="filterGemarkeerd">
+      <span>Toon enkel gemarkeerde taken</span>
     </label>
   </div>
 </div>
@@ -126,7 +131,7 @@ async function fetchTaken(showNoticeIfChanged = false) {
 
     takenData = data;
     vulFilters();
-    renderTaken();
+    renderTaken(); // update per taakId
   } catch(err) {
     console.error("Fout bij ophalen taken:", err);
   }
@@ -157,35 +162,39 @@ function vulFilters() {
   selectCom.addEventListener('change', renderTaken);
   selectPrio.addEventListener('change', renderTaken);
   document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
+  document.getElementById('filterGemarkeerd').addEventListener('change', renderTaken);
 }
 
 function renderTaken() {
   const container = document.getElementById('tasks-container');
-  container.innerHTML = '';
 
   const selectedVer = document.getElementById('filterVerantwoordelijke').value;
   const selectedCom = document.getElementById('filterCommissie').value;
   const selectedPrio = document.getElementById('filterPrioriteit').value;
   const verbergOk = document.getElementById('filterStatusOk').checked;
+  const enkelGemarkeerd = document.getElementById('filterGemarkeerd').checked;
 
   const today = new Date();
-  const filtered = takenData.filter(t => {
-    if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
-    if(selectedCom && t.commissie !== selectedCom) return false;
-    if(selectedPrio && String(t.prioriteit) !== selectedPrio) return false; // <- aangepast
-    if(verbergOk && t.status === 'OK') return false;
-    return true;
-  });
 
-  filtered.forEach(t => {
-    const card = document.createElement('div');
-    card.className = 'col s12';
+  takenData.forEach(t => {
+    if(selectedVer && t.verantwoordelijke !== selectedVer) return;
+    if(selectedCom && t.commissie !== selectedCom) return;
+    if(selectedPrio && t.prioriteit !== selectedPrio) return;
+    if(verbergOk && t.status === 'OK') return;
+    if(enkelGemarkeerd && !t.markeren) return;
+
+    let card = document.getElementById(`taak-${t.taakId}`);
+    if(!card) {
+      card = document.createElement('div');
+      card.className = 'col s12';
+      card.id = `taak-${t.taakId}`;
+      container.appendChild(card);
+    }
 
     let cardClass = '';
     if(t.status==='OK') cardClass = 'green lighten-4';
     else if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
-
-    if(t.markeren) card.classList.add('card-markeren');
+    card.className = 'col s12';
 
     let statusClass = '';
     if(t.status==='OK') statusClass='green-text text-darken-4';
@@ -246,36 +255,20 @@ function renderTaken() {
       </div>
     `;
 
-    container.appendChild(card);
-  });
+    const selectEls = card.querySelectorAll('select.updateSelect');
+    M.FormSelect.init(selectEls);
 
-  document.querySelectorAll('select.updateSelect').forEach(sel => {
-    const instance = M.FormSelect.getInstance(sel);
-    if(instance) instance.destroy();
-    M.FormSelect.init(sel);
-  });
-
-  document.querySelectorAll('.updateCheckbox').forEach(cb => {
-    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
-  });
-
-  document.querySelectorAll('.updateSelect').forEach(sel => {
-    sel.addEventListener('change', e => {
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-      if(sel.classList.contains('status-select')){
-        sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
-        if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
-        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
-        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
-      }
-      if(sel.dataset.veld==='prioriteit'){
-        sel.className = `updateSelect prioriteit-${e.target.value}`;
-      }
+    card.querySelectorAll('.updateCheckbox').forEach(cb => {
+      cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
     });
-  });
-
-  document.querySelectorAll('.updateInput').forEach(inp => {
-    inp.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value));
+    card.querySelectorAll('.updateSelect').forEach(sel => {
+      sel.addEventListener('change', e => {
+        updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+      });
+    });
+    card.querySelectorAll('.updateInput').forEach(inp => {
+      inp.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value));
+    });
   });
 }
 
