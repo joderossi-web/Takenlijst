@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 29 - Chiro Leopoldsburg</title>
+<title>Taken Versie 30 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -38,6 +38,10 @@ nav { background-color: #c62828; }
 /* Modal styling */
 .modal { max-height: 80%; }
 .modal-content h5 { margin-bottom: 15px; }
+
+/* Filter knop niet overlappend */
+.filter-button-wrapper { display: flex; align-items: center; justify-content: flex-start; margin-top: 15px; }
+.filter-button-wrapper .btn { margin-left: 0; }
 </style>
 </head>
 <body>
@@ -49,7 +53,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 29</h4>
+<h4 class="center-align">Taken Versie 30</h4>
 
 <!-- Bovenliggende checkboxen -->
 <div class="row filter-container">
@@ -65,7 +69,7 @@ nav { background-color: #c62828; }
       <span>Alleen gemarkeerde taken</span>
     </label>
   </div>
-  <div class="col s12 m3">
+  <div class="col s12 m3 filter-button-wrapper">
     <a class="waves-effect waves-light btn modal-trigger" href="#filterModal">Filters instellen</a>
   </div>
 </div>
@@ -140,7 +144,6 @@ function vulFilters() {
   const container = document.getElementById('filterCheckboxes');
   container.innerHTML = '';
 
-  // Verantwoordelijke
   container.innerHTML += '<h6>Verantwoordelijke</h6>';
   verantwoordelijken.forEach(v => {
     const checked = selectedFilters.verantwoordelijke === v ? 'checked' : '';
@@ -148,7 +151,6 @@ function vulFilters() {
   });
   container.innerHTML += `<p><label><input name="verantwoordelijke" type="radio" value="" ${selectedFilters.verantwoordelijke === '' ? 'checked':''}><span>Alle</span></label></p>`;
 
-  // Commissie
   container.innerHTML += '<h6>Commissie</h6>';
   commissies.forEach(c => {
     const checked = selectedFilters.commissie === c ? 'checked' : '';
@@ -156,7 +158,6 @@ function vulFilters() {
   });
   container.innerHTML += `<p><label><input name="commissie" type="radio" value="" ${selectedFilters.commissie === '' ? 'checked':''}><span>Alle</span></label></p>`;
 
-  // Prioriteit
   container.innerHTML += '<h6>Prioriteit</h6>';
   prioriteiten.forEach(p => {
     const checked = selectedFilters.prioriteit === String(p) ? 'checked' : '';
@@ -267,7 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var elems = document.querySelectorAll('.modal');
   M.Modal.init(elems);
 
-  // Bovenliggende checkboxes
   document.getElementById('filterStatusOk').addEventListener('change', e => { verbergOk = e.target.checked; renderTaken(); });
   document.getElementById('filterGemarkeerd').addEventListener('change', e => { alleenGemarkeerd = e.target.checked; renderTaken(); });
 });
