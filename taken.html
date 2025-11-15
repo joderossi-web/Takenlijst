@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taken Versie 05 - Chiro Leopoldsburg</title>
+  <title>Taken Versie 06 - Chiro Leopoldsburg</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -31,7 +31,7 @@
   </nav>
 
   <div class="container">
-    <h4 class="center-align">Taken Versie 05</h4>
+    <h4 class="center-align">Taken Versie 06</h4>
 
     <div class="filter-container row">
       <div class="input-field col s12 m4">
@@ -63,12 +63,14 @@
     let takenData = [];
     let statusOptions = [];
 
+    // Haal de status dropdownwaarden op
     async function fetchDropdowns() {
       const res = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=Dropdowns`);
       const dropdowns = await res.json();
       statusOptions = dropdowns.map(d => d.status).filter(Boolean);
     }
 
+    // Haal de taken op
     async function fetchTaken() {
       const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
       const data = await response.json();
@@ -81,10 +83,9 @@
       });
 
       takenData = data;
-      vulFilters();
-      renderTaken();
     }
 
+    // Vul de filters (verantwoordelijke / commissie)
     function vulFilters() {
       const verantwoordelijken = [...new Set(takenData.map(t => t.verantwoordelijke).filter(Boolean))];
       const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
@@ -105,7 +106,6 @@
         selectCom.appendChild(option);
       });
 
-      // Init Materialize selects **pas nadat options toegevoegd zijn**
       M.FormSelect.init(selectVer);
       M.FormSelect.init(selectCom);
 
@@ -114,6 +114,7 @@
       document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
     }
 
+    // Render alle taken kaarten
     function renderTaken() {
       const container = document.getElementById('tasks-container');
       container.innerHTML = '';
@@ -187,7 +188,7 @@
         container.appendChild(card);
       });
 
-      // Materialize select opnieuw initialiseren na DOM update
+      // Init Materialize selects **pas nadat alle kaarten toegevoegd zijn**
       document.querySelectorAll('select.updateSelect').forEach(sel => {
         const instance = M.FormSelect.getInstance(sel);
         if(instance) instance.destroy();
@@ -231,8 +232,14 @@
       .catch(err => console.error(err));
     }
 
-    // ✅ Cruciale volgorde: eerst dropdowns, dan taken renderen
-    fetchDropdowns().then(fetchTaken);
+    // Cruciale volgorde: eerst dropdowns ophalen, dan taken, dan render
+    fetchDropdowns().then(() => {
+      fetchTaken().then(() => {
+        vulFilters();
+        renderTaken();
+      });
+    });
+
   </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
