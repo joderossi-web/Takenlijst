@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 15 - Chiro Leopoldsburg</title>
+<title>Taken Versie 16 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -46,7 +46,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 15</h4>
+<h4 class="center-align">Taken Versie 16</h4>
 
 <div id="update-notice">
   Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
@@ -119,44 +119,44 @@ async function fetchTaken(showNoticeIfChanged=false){
     lastFetchedData = dataString;
 
     takenData = data;
-    renderFilters();
-    renderTaken();
+    renderTaken(); // Alleen kaarten updaten
   } catch(err){ console.error(err); }
 }
 
-function renderFilters(){
+function renderFilters() {
   const selectVer = document.getElementById('filterVerantwoordelijke');
   const selectCom = document.getElementById('filterCommissie');
   const selectPrio = document.getElementById('filterPrioriteit');
-
-  // Bewaar huidige waarde
-  const valVer = selectVer.value;
-  const valCom = selectCom.value;
-  const valPrio = selectPrio.value;
 
   const verantwoordelijken = [...new Set(takenData.map(t=>t.verantwoordelijke).filter(Boolean))];
   const commissies = [...new Set(takenData.map(t=>t.commissie).filter(Boolean))];
   const prioriteiten = [...new Set(takenData.map(t=>t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
-  // Alleen nieuwe opties toevoegen, behoud geselecteerde waarde
-  selectVer.innerHTML = '<option value="">Alle verantwoordelijken</option>';
-  verantwoordelijken.forEach(v=> selectVer.appendChild(new Option(v,v)));
-  selectVer.value = valVer;
+  // Voeg alleen nieuwe opties toe indien ze nog niet bestaan
+  verantwoordelijken.forEach(v=>{
+    if(!Array.from(selectVer.options).some(opt=>opt.value===v)) selectVer.appendChild(new Option(v,v));
+  });
+  commissies.forEach(c=>{
+    if(!Array.from(selectCom.options).some(opt=>opt.value===c)) selectCom.appendChild(new Option(c,c));
+  });
+  prioriteiten.forEach(p=>{
+    if(!Array.from(selectPrio.options).some(opt=>opt.value===p)) selectPrio.appendChild(new Option(p,p));
+  });
 
-  selectCom.innerHTML = '<option value="">Alle commissies</option>';
-  commissies.forEach(c=> selectCom.appendChild(new Option(c,c)));
-  selectCom.value = valCom;
-
-  selectPrio.innerHTML = '<option value="">Alle prioriteiten</option>';
-  prioriteiten.forEach(p=> selectPrio.appendChild(new Option(p,p)));
-  selectPrio.value = valPrio;
-
-  [selectVer, selectCom, selectPrio].forEach(el => M.FormSelect.init(el));
-
-  [selectVer, selectCom, selectPrio,
-   document.getElementById('filterStatusOk'),
-   document.getElementById('filterGemarkeerd')].forEach(el => el.addEventListener('change', ()=>renderTaken()));
+  M.FormSelect.init(selectVer);
+  M.FormSelect.init(selectCom);
+  M.FormSelect.init(selectPrio);
 }
+
+// Filters één keer instellen bij pagina load
+document.addEventListener('DOMContentLoaded', ()=>{
+  renderFilters();
+
+  ['filterVerantwoordelijke','filterCommissie','filterPrioriteit',
+   'filterStatusOk','filterGemarkeerd'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', renderTaken);
+  });
+});
 
 function renderTaken(){
   const container = document.getElementById('tasks-container');
