@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 20 - Chiro Leopoldsburg</title>
+<title>Taken Versie 21 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -45,19 +45,19 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 20</h4>
+<h4 class="center-align">Taken Versie 21</h4>
 
 <div class="filter-container row">
   <div class="input-field col s12 m3">
-    <select id="filterVerantwoordelijke" class="native-select"><option value="" selected>Alle verantwoordelijken</option></select>
+    <select id="filterVerantwoordelijke"><option value="" selected>Alle verantwoordelijken</option></select>
     <label>Verantwoordelijke</label>
   </div>
   <div class="input-field col s12 m3">
-    <select id="filterCommissie" class="native-select"><option value="" selected>Alle commissies</option></select>
+    <select id="filterCommissie"><option value="" selected>Alle commissies</option></select>
     <label>Commissie</label>
   </div>
   <div class="input-field col s12 m3">
-    <select id="filterPrioriteit" class="native-select"><option value="" selected>Alle prioriteiten</option></select>
+    <select id="filterPrioriteit"><option value="" selected>Alle prioriteiten</option></select>
     <label>Prioriteit</label>
   </div>
   <div class="input-field col s12 m3">
@@ -87,17 +87,18 @@ const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4
 let takenData = [];
 const statusOptions = ["NOK", "Bezig", "OK"];
 
-// Hulpfunctie voor deadline tekst
 function getDeadlineText(deadlineObj) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const deadline = new Date(deadlineObj); deadline.setHours(0,0,0,0);
-  const diffDays = Math.round((deadline - today)/(1000*60*60*24));
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const deadline = new Date(deadlineObj);
+  deadline.setHours(0,0,0,0);
+  const diffTime = deadline - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   if(diffDays < 0) return `Deadline is met ${Math.abs(diffDays)} dagen overschreden`;
   else if(diffDays === 0) return `Deadline is vandaag!`;
   else return `Deadline is over ${diffDays} dagen`;
 }
 
-// Taken ophalen en bijwerken
 async function fetchTaken() {
   try {
     const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
@@ -111,11 +112,11 @@ async function fetchTaken() {
       }
     });
 
-    // Alleen gewijzigde taken bijwerken op basis van taakId
+    // Werk enkel gewijzigde taken bij op basis van taakId
     data.forEach(t => {
       const index = takenData.findIndex(old => old.taakId === t.taakId);
-      if(index !== -1) takenData[index] = t;
-      else takenData.push(t);
+      if(index !== -1) takenData[index] = t; 
+      else takenData.push(t); 
     });
 
     vulFilters();
@@ -125,7 +126,6 @@ async function fetchTaken() {
   }
 }
 
-// Filters vullen
 function vulFilters() {
   const verantwoordelijken = [...new Set(takenData.map(t => t.verantwoordelijke).filter(Boolean))];
   const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
@@ -143,12 +143,13 @@ function vulFilters() {
   selectPrio.innerHTML = '<option value="" selected>Alle prioriteiten</option>';
   prioriteiten.forEach(p => { const option = document.createElement('option'); option.value=p; option.textContent=p; selectPrio.appendChild(option); });
 
-  // Init Materialize selects, native op mobiel
-  document.querySelectorAll('select').forEach(sel => {
-    M.FormSelect.init(sel, {dropdownOptions:{coverTrigger:false}});
-  });
+  // Init Materialize alleen op desktop
+  if(window.innerWidth >= 768){
+    M.FormSelect.init(selectVer);
+    M.FormSelect.init(selectCom);
+    M.FormSelect.init(selectPrio);
+  }
 
-  // Event listeners voor filters
   selectVer.addEventListener('change', renderTaken);
   selectCom.addEventListener('change', renderTaken);
   selectPrio.addEventListener('change', renderTaken);
@@ -156,7 +157,6 @@ function vulFilters() {
   document.getElementById('filterGemarkeerd').addEventListener('change', renderTaken);
 }
 
-// Taken renderen
 function renderTaken() {
   const container = document.getElementById('tasks-container');
   container.innerHTML = '';
@@ -184,9 +184,14 @@ function renderTaken() {
     let cardClass = '';
     if(t.status==='OK') cardClass = 'green lighten-4';
     else if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
+
     if(t.markeren) card.classList.add('card-markeren');
 
-    let statusClass = t.status==='OK'?'green-text text-darken-4':t.status==='Bezig'?'orange-text text-darken-3':'red-text text-darken-3';
+    let statusClass = '';
+    if(t.status==='OK') statusClass='green-text text-darken-4';
+    else if(t.status==='Bezig') statusClass='orange-text text-darken-3';
+    else if(t.status==='NOK') statusClass='red-text text-darken-3';
+
     let priorClass = `prioriteit-${t.prioriteit || 1}`;
 
     card.innerHTML = `
@@ -198,7 +203,7 @@ function renderTaken() {
 
           <p>
             <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren?'checked':''}/>
+              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren ? 'checked' : ''}/>
               <span>Markeren</span>
             </label>
           </p>
@@ -228,7 +233,7 @@ function renderTaken() {
 
           <p>
             <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd?'checked':''}/>
+              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd ? 'checked' : ''}/>
               <span>Verouderd</span>
             </label>
           </p>
@@ -240,19 +245,31 @@ function renderTaken() {
         </div>
       </div>
     `;
+
     container.appendChild(card);
   });
 
-  // Init nieuwe select-elementen
-  document.querySelectorAll('select.updateSelect').forEach(sel=>{
-    M.FormSelect.init(sel,{dropdownOptions:{coverTrigger:false}});
+  // Alleen desktop: Materialize select init
+  if(window.innerWidth >= 768){
+    document.querySelectorAll('select.updateSelect').forEach(sel => {
+      const instance = M.FormSelect.getInstance(sel);
+      if(instance) instance.destroy();
+      M.FormSelect.init(sel);
+    });
+  }
+
+  document.querySelectorAll('.updateCheckbox').forEach(cb => {
+    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
+  });
+
+  document.querySelectorAll('.updateSelect').forEach(sel => {
     sel.addEventListener('change', e => {
       updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
       if(sel.classList.contains('status-select')){
         sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
         if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
-        else if(e.target.value==='Bezig') sel.classList.add('orange-text text-darken-3');
-        else sel.classList.add('red-text text-darken-3');
+        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
+        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
       }
       if(sel.dataset.veld==='prioriteit'){
         sel.className = `updateSelect prioriteit-${e.target.value}`;
@@ -260,22 +277,21 @@ function renderTaken() {
     });
   });
 
-  document.querySelectorAll('.updateCheckbox').forEach(cb => {
-    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid,e.target.dataset.veld,e.target.checked));
-  });
-  document.querySelectorAll('.updateInput').forEach(inp=>{
-    inp.addEventListener('change', e => updateVeld(e.target.dataset.taakid,e.target.dataset.veld,e.target.value));
+  document.querySelectorAll('.updateInput').forEach(inp => {
+    inp.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value));
   });
 }
 
-// Update functie
-function updateVeld(taakId, veld, waarde){
-  fetch(apiUrl,{method:'POST',body:JSON.stringify({spreadsheetId,tabblad,taakId,veld,waarde})})
-  .then(res=>res.json()).then(res=>{if(res.status!=='ok')console.error(res.message);})
-  .catch(err=>console.error(err));
+function updateVeld(taakId, veld, waarde) {
+  fetch(apiUrl, {
+    method: 'POST',
+    body: JSON.stringify({ spreadsheetId, tabblad, taakId, veld, waarde })
+  })
+  .then(res => res.json())
+  .then(res => { if(res.status!=='ok') console.error(res.message); })
+  .catch(err => console.error(err));
 }
 
-// Start ophalen en interval
 fetchTaken();
 setInterval(fetchTaken, 15000);
 </script>
