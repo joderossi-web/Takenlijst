@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 10 - Chiro Leopoldsburg</title>
+<title>Taken Versie 11 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -21,9 +21,6 @@ nav { background-color: #c62828; }
 .status-ok { color: green; font-weight: bold; }
 .status-bezig { color: orange; font-weight: bold; }
 .status-nok { color: red; font-weight: bold; }
-
-/* Deadline rood */
-.deadline-verlopen { border-left: 5px solid red; }
 
 /* Prioriteit kleuren */
 .prioriteit-1 { background-color: #ffffff; }
@@ -46,7 +43,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 10</h4>
+<h4 class="center-align">Taken Versie 11</h4>
 
 <div id="update-notice">
   Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
@@ -154,17 +151,17 @@ function renderTaken() {
     const card = document.createElement('div');
     card.className = 'col s12';
 
-    // Kaartkleur afhankelijk van status en deadline
+    // Kaartkleur: status OK -> groen, anders deadline check rood
     let cardClass = '';
     if(t.status==='OK') cardClass = 'green lighten-4';
-    if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
+    else if(t.deadlineObj && today >= t.deadlineObj) cardClass = 'red lighten-4';
     if(t.markeren) cardClass = 'red lighten-4';
 
     // Statuskleur
     let statusClass = '';
-    if(t.status==='OK') statusClass='status-ok';
-    else if(t.status==='Bezig') statusClass='status-bezig';
-    else if(t.status==='NOK') statusClass='status-nok';
+    if(t.status==='OK') statusClass='green-text text-darken-4';
+    else if(t.status==='Bezig') statusClass='orange-text text-darken-3';
+    else if(t.status==='NOK') statusClass='red-text text-darken-3';
 
     // Prioriteit kleur
     let priorClass = `prioriteit-${t.prioriteit || 1}`;
@@ -184,8 +181,7 @@ function renderTaken() {
 
           <p>
             <strong>Prioriteit:</strong>
-            <span class="prioriteit-label ${priorClass}">${t.prioriteit || '-'}</span>
-            <select class="updateSelect" data-taakid="${t.taakId}" data-veld="prioriteit">
+            <select class="updateSelect ${priorClass}" data-taakid="${t.taakId}" data-veld="prioriteit">
               <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
               <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
               <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
@@ -242,6 +238,17 @@ function renderTaken() {
   document.querySelectorAll('.updateSelect').forEach(sel => {
     sel.addEventListener('change', e => {
       updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
+      // Update statuskleur live
+      if(sel.classList.contains('status-select')) {
+        sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
+        if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
+        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
+        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
+      }
+      // Update prioriteit kleur live
+      if(sel.dataset.veld==='prioriteit') {
+        sel.className = `updateSelect prioriteit-${e.target.value}`;
+      }
     });
   });
 
@@ -270,7 +277,6 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
 
 fetchTaken();
 setInterval(()=>fetchTaken(true), 15000);
-
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
