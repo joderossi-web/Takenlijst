@@ -8,7 +8,7 @@
   <!-- Materialize CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 
-  <!-- Material Icons Font -->
+  <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
   <!-- Custom Style -->
@@ -31,7 +31,7 @@
       margin-right: 20px;
       color: #c62828;
     }
-    h5 {
+    h5, .card-title {
       margin-bottom: 10px;
       color: #c62828;
     }
@@ -43,6 +43,7 @@
 </head>
 <body>
 
+  <!-- Navbar -->
   <nav>
     <div class="nav-wrapper">
       <a href="index.html" class="brand-logo center">Chiro Leopoldsburg</a>
@@ -57,6 +58,7 @@
   </div>
 
   <script>
+    // Jouw Apps Script webapp URL
     const apiUrl = "https://script.google.com/macros/s/AKfycby6j9EWJ8nuSEwoBozsl_tnftMsv0AVHlKWn-pYT_CkkSN1Dr8JfxFrEM5Ewetm0b6YJw/exec";
 
     async function fetchActivities() {
@@ -71,14 +73,14 @@
             <div class="col s12 m6">
               <div class="card z-depth-2">
                 <div class="card-content">
-                  <i class="material-icons">${activity.icon || 'event'}</i>
+                  <i class="material-icons">${activity.icoon || 'event'}</i>
                   <div>
-                    <span class="card-title">${activity.name}</span>
-                    <p>${activity.description}</p>
+                    <span class="card-title">${activity.naam}</span>
+                    <p>${activity.omschrijving}</p>
                   </div>
                 </div>
                 <div class="card-action">
-                  <a href="taken.html?spreadsheetId=${activity.spreadsheetId}&tabblad=${activity.tabblad}">
+                  <a href="activiteit.html?spreadsheetId=${activity.spreadsheetId}&tabblad=${activity.tabblad}">
                     Bekijk Taken →
                   </a>
                 </div>
@@ -87,6 +89,7 @@
           `;
           container.insertAdjacentHTML('beforeend', card);
         });
+
       } catch (error) {
         console.error("Fout bij het ophalen van activiteiten:", error);
       }
