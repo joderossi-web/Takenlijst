@@ -1,79 +1,101 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Activiteiten - Chiro Leopoldsburg</title>
+
+  <!-- Materialize CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+  <!-- Material Icons Font -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- Custom Style -->
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f7f7f7;
-      margin: 0;
-      padding: 20px;
+      background-color: #f9fafb;
     }
-    h1 {
-      text-align: center;
-      color: #333;
+    nav {
+      background-color: #c62828;
     }
-    .card-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
+    .container {
       margin-top: 30px;
     }
-    .card {
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      padding: 20px;
-      width: 200px;
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.2s;
+    .card-content {
+      display: flex;
+      align-items: center;
     }
-    .card:hover {
-      transform: scale(1.05);
+    .material-icons {
+      font-size: 48px;
+      margin-right: 20px;
+      color: #c62828;
     }
-    .icon {
-      font-size: 40px;
-    }
-    h3 {
+    h5 {
       margin-bottom: 10px;
-      color: #444;
+      color: #c62828;
     }
-    p {
-      font-size: 14px;
-      color: #666;
+    .card-action a {
+      color: #c62828 !important;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>Activiteiten</h1>
-  <div id="cardContainer" class="card-container"></div>
+
+  <nav>
+    <div class="nav-wrapper">
+      <a href="index.html" class="brand-logo center">Chiro Leopoldsburg</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h4 class="center-align">Activiteiten</h4>
+
+    <!-- Activiteitencards komen hieronder -->
+    <div id="activities-container" class="row"></div>
+  </div>
 
   <script>
-    const webAppUrl = 'https://script.google.com/macros/s/AKfycby6j9EWJ8nuSEwoBozsl_tnftMsv0AVHlKWn-pYT_CkkSN1Dr8JfxFrEM5Ewetm0b6YJw/exec';
+    const apiUrl = "https://script.google.com/macros/s/AKfycby6j9EWJ8nuSEwoBozsl_tnftMsv0AVHlKWn-pYT_CkkSN1Dr8JfxFrEM5Ewetm0b6YJw/exec";
 
-    fetch(webAppUrl)
-      .then(response => response.json())
-      .then(activiteiten => {
-        const container = document.getElementById('cardContainer');
+    async function fetchActivities() {
+      try {
+        const response = await fetch(apiUrl);
+        const activities = await response.json();
 
-        activiteiten.forEach(act => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <div class="icon">${act.icoon || "🗂️"}</div>
-            <h3>${act.naam}</h3>
-            <p>${act.omschrijving}</p>
+        const container = document.getElementById("activities-container");
+
+        activities.forEach(activity => {
+          const card = `
+            <div class="col s12 m6">
+              <div class="card z-depth-2">
+                <div class="card-content">
+                  <i class="material-icons">${activity.icon || 'event'}</i>
+                  <div>
+                    <span class="card-title">${activity.name}</span>
+                    <p>${activity.description}</p>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <a href="taken.html?spreadsheetId=${activity.spreadsheetId}&tabblad=${activity.tabblad}">
+                    Bekijk Taken →
+                  </a>
+                </div>
+              </div>
+            </div>
           `;
-          card.onclick = () => {
-            window.location.href = `activiteit.html?sheet=${act.spreadsheetId}&tab=${act.tabblad}`;
-          };
-          container.appendChild(card);
+          container.insertAdjacentHTML('beforeend', card);
         });
-      })
-      .catch(err => console.error("Fout bij laden van activiteiten:", err));
+      } catch (error) {
+        console.error("Fout bij het ophalen van activiteiten:", error);
+      }
+    }
+
+    fetchActivities();
   </script>
+
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
