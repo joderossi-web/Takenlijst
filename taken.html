@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 14 - Chiro Leopoldsburg</title>
+<title>Taken Versie 15 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -46,7 +46,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 14</h4>
+<h4 class="center-align">Taken Versie 15</h4>
 
 <div id="update-notice">
   Er zijn nieuwe updates, klik op <button id="refreshBtn" class="btn red">Vernieuw taken</button>
@@ -88,7 +88,6 @@ const spreadsheetId = urlParams.get('spreadsheetId');
 const tabblad = urlParams.get('tabblad');
 const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec';
 const statusOptions = ["NOK","Bezig","OK"];
-
 let takenData = [];
 let lastFetchedData = '';
 
@@ -120,33 +119,41 @@ async function fetchTaken(showNoticeIfChanged=false){
     lastFetchedData = dataString;
 
     takenData = data;
-    vulFilters();
+    renderFilters();
     renderTaken();
   } catch(err){ console.error(err); }
 }
 
-function vulFilters(){
+function renderFilters(){
+  const selectVer = document.getElementById('filterVerantwoordelijke');
+  const selectCom = document.getElementById('filterCommissie');
+  const selectPrio = document.getElementById('filterPrioriteit');
+
+  // Bewaar huidige waarde
+  const valVer = selectVer.value;
+  const valCom = selectCom.value;
+  const valPrio = selectPrio.value;
+
   const verantwoordelijken = [...new Set(takenData.map(t=>t.verantwoordelijke).filter(Boolean))];
   const commissies = [...new Set(takenData.map(t=>t.commissie).filter(Boolean))];
   const prioriteiten = [...new Set(takenData.map(t=>t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
-  const selectVer = document.getElementById('filterVerantwoordelijke');
-  selectVer.innerHTML = '<option value="" selected>Alle verantwoordelijken</option>';
-  verantwoordelijken.forEach(v=>selectVer.appendChild(new Option(v,v)));
+  // Alleen nieuwe opties toevoegen, behoud geselecteerde waarde
+  selectVer.innerHTML = '<option value="">Alle verantwoordelijken</option>';
+  verantwoordelijken.forEach(v=> selectVer.appendChild(new Option(v,v)));
+  selectVer.value = valVer;
 
-  const selectCom = document.getElementById('filterCommissie');
-  selectCom.innerHTML = '<option value="" selected>Alle commissies</option>';
-  commissies.forEach(c=>selectCom.appendChild(new Option(c,c)));
+  selectCom.innerHTML = '<option value="">Alle commissies</option>';
+  commissies.forEach(c=> selectCom.appendChild(new Option(c,c)));
+  selectCom.value = valCom;
 
-  const selectPrio = document.getElementById('filterPrioriteit');
-  selectPrio.innerHTML = '<option value="" selected>Alle prioriteiten</option>';
-  prioriteiten.forEach(p=>selectPrio.appendChild(new Option(p,p)));
+  selectPrio.innerHTML = '<option value="">Alle prioriteiten</option>';
+  prioriteiten.forEach(p=> selectPrio.appendChild(new Option(p,p)));
+  selectPrio.value = valPrio;
 
-  M.FormSelect.init(selectVer);
-  M.FormSelect.init(selectCom);
-  M.FormSelect.init(selectPrio);
+  [selectVer, selectCom, selectPrio].forEach(el => M.FormSelect.init(el));
 
-  [selectVer,selectCom,selectPrio,
+  [selectVer, selectCom, selectPrio,
    document.getElementById('filterStatusOk'),
    document.getElementById('filterGemarkeerd')].forEach(el => el.addEventListener('change', ()=>renderTaken()));
 }
@@ -181,6 +188,7 @@ function renderTaken(){
     let cardClass='';
     if(t.status==='OK') cardClass='green lighten-4';
     else if(t.deadlineObj && today>=t.deadlineObj) cardClass='red lighten-4';
+
     card.innerHTML = `
       <div class="card ${cardClass} ${t.markeren?'card-markeren':''}">
         <div class="card-content">
@@ -248,13 +256,6 @@ function renderTaken(){
   document.querySelectorAll('.updateSelect').forEach(sel=>{
     sel.addEventListener('change', e=>{
       updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-      if(sel.dataset.veld==='status'){
-        sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
-        if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
-        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
-        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
-      }
-      if(sel.dataset.veld==='prioriteit') sel.className=`updateSelect prioriteit-${e.target.value}`;
     });
   });
 
