@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 27 - Chiro Leopoldsburg</title>
+<title>Taken Versie 28 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -34,6 +34,10 @@ nav { background-color: #c62828; }
 
 /* Taak ID onderaan */
 .taak-id { font-size: 0.8rem; color: #555; margin-top: 10px; text-align: right; }
+
+/* Modal styling */
+.modal { max-height: 80%; }
+.modal-content h5 { margin-bottom: 15px; }
 </style>
 </head>
 <body>
@@ -45,40 +49,25 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 27</h4>
+<h4 class="center-align">Taken Versie 28</h4>
 
-<!-- Filter knop -->
+<!-- Filter Button -->
 <div class="row">
   <div class="col s12">
-    <a class="waves-effect waves-light btn modal-trigger" href="#filterModal">Filters</a>
+    <a class="waves-effect waves-light btn modal-trigger" href="#filterModal">Filters instellen</a>
   </div>
 </div>
 
-<!-- Modal voor hoofdfilters -->
+<!-- Modal Structure -->
 <div id="filterModal" class="modal">
   <div class="modal-content">
     <h5>Filters</h5>
-
-    <div>
-      <p><strong>Verantwoordelijke</strong></p>
-      <div id="filterVerantwoordelijkeContainer"></div>
-
-      <p><strong>Commissie</strong></p>
-      <div id="filterCommissieContainer"></div>
-
-      <p><strong>Prioriteit</strong></p>
-      <div id="filterPrioriteitContainer"></div>
-
-      <p>
-        <label><input type="checkbox" id="filterStatusOk"/> <span>Verberg taken met status "OK"</span></label>
-      </p>
-      <p>
-        <label><input type="checkbox" id="filterGemarkeerd"/> <span>Alleen gemarkeerde taken</span></label>
-      </p>
+    <div id="filterCheckboxes">
+      <!-- Checkboxen worden hier dynamisch gegenereerd -->
     </div>
   </div>
   <div class="modal-footer">
-    <a href="#!" class="modal-close waves-effect waves-green btn-flat" id="applyFiltersBtn">Toepassen</a>
+    <a href="#!" class="modal-close waves-effect waves-green btn-flat">Sluiten</a>
   </div>
 </div>
 
@@ -89,33 +78,22 @@ nav { background-color: #c62828; }
 const urlParams = new URLSearchParams(window.location.search);
 const spreadsheetId = urlParams.get('spreadsheetId');
 const tabblad = urlParams.get('tabblad');
+
 const apiUrl = 'https://script.google.com/macros/s/AKfycbzxE1xtIxwT74WNMdfqYhhG4UGC8g2pUumgI2hK3CjW5RcVa3n5Q1UXNW64nHTHc6smig/exec';
 
 let takenData = [];
 const statusOptions = ["NOK", "Bezig", "OK"];
-
-// Voor geselecteerde filters
-let selectedFilters = {
-  verantwoordelijke: '',
-  commissie: '',
-  prioriteit: '',
-  verbergOk: false,
-  alleenGemarkeerd: false
-};
+let selectedFilters = {verantwoordelijke:'', commissie:'', prioriteit:''};
 
 function getDeadlineText(deadlineObj) {
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const deadline = new Date(deadlineObj);
-  deadline.setHours(0,0,0,0);
-  const diffTime = deadline - today;
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const deadline = new Date(deadlineObj); deadline.setHours(0,0,0,0);
+  const diffDays = Math.round((deadline - today) / (1000*60*60*24));
   if(diffDays < 0) return `Deadline is met ${Math.abs(diffDays)} dagen overschreden`;
   else if(diffDays === 0) return `Deadline is vandaag!`;
   else return `Deadline is over ${diffDays} dagen`;
 }
 
-// Ophalen taken
 async function fetchTaken() {
   try {
     const response = await fetch(`${apiUrl}?spreadsheetId=${spreadsheetId}&tabblad=${tabblad}`);
@@ -129,74 +107,60 @@ async function fetchTaken() {
       }
     });
 
-    // Enkel gewijzigde taken bijwerken
+    // Werk enkel gewijzigde taken bij op basis van taakId
     data.forEach(t => {
       const index = takenData.findIndex(old => old.taakId === t.taakId);
       if(index !== -1) takenData[index] = t; 
       else takenData.push(t); 
     });
 
-    vulHoofdFilters();
+    vulFilters();
     renderTaken();
   } catch(err) {
     console.error("Fout bij ophalen taken:", err);
   }
 }
 
-// Vul checkboxen in modal
-function vulHoofdFilters() {
+function vulFilters() {
   const verantwoordelijken = [...new Set(takenData.map(t => t.verantwoordelijke).filter(Boolean))];
   const commissies = [...new Set(takenData.map(t => t.commissie).filter(Boolean))];
   const prioriteiten = [...new Set(takenData.map(t => t.prioriteit).filter(Boolean))].sort((a,b)=>a-b);
 
-  const verContainer = document.getElementById('filterVerantwoordelijkeContainer');
-  const comContainer = document.getElementById('filterCommissieContainer');
-  const prioContainer = document.getElementById('filterPrioriteitContainer');
+  const container = document.getElementById('filterCheckboxes');
+  container.innerHTML = '';
 
-  verContainer.innerHTML = '';
+  // Verantwoordelijke
+  container.innerHTML += '<h6>Verantwoordelijke</h6>';
   verantwoordelijken.forEach(v => {
-    const id = `ver-${v}`;
-    verContainer.innerHTML += `<p><label><input type="checkbox" name="verantwoordelijke" id="${id}" value="${v}"/> <span>${v}</span></label></p>`;
+    const checked = selectedFilters.verantwoordelijke === v ? 'checked' : '';
+    container.innerHTML += `<p><label><input name="verantwoordelijke" type="radio" value="${v}" ${checked}><span>${v}</span></label></p>`;
   });
+  container.innerHTML += `<p><label><input name="verantwoordelijke" type="radio" value="" ${selectedFilters.verantwoordelijke === '' ? 'checked':''}><span>Alle</span></label></p>`;
 
-  comContainer.innerHTML = '';
+  // Commissie
+  container.innerHTML += '<h6>Commissie</h6>';
   commissies.forEach(c => {
-    const id = `com-${c}`;
-    comContainer.innerHTML += `<p><label><input type="checkbox" name="commissie" id="${id}" value="${c}"/> <span>${c}</span></label></p>`;
+    const checked = selectedFilters.commissie === c ? 'checked' : '';
+    container.innerHTML += `<p><label><input name="commissie" type="radio" value="${c}" ${checked}><span>${c}</span></label></p>`;
   });
+  container.innerHTML += `<p><label><input name="commissie" type="radio" value="" ${selectedFilters.commissie === '' ? 'checked':''}><span>Alle</span></label></p>`;
 
-  prioContainer.innerHTML = '';
+  // Prioriteit
+  container.innerHTML += '<h6>Prioriteit</h6>';
   prioriteiten.forEach(p => {
-    const id = `prio-${p}`;
-    prioContainer.innerHTML += `<p><label><input type="checkbox" name="prioriteit" id="${id}" value="${p}"/> <span>${p}</span></label></p>`;
+    const checked = selectedFilters.prioriteit === String(p) ? 'checked' : '';
+    container.innerHTML += `<p><label><input name="prioriteit" type="radio" value="${p}" ${checked}><span>${p}</span></label></p>`;
   });
+  container.innerHTML += `<p><label><input name="prioriteit" type="radio" value="" ${selectedFilters.prioriteit === '' ? 'checked':''}><span>Alle</span></label></p>`;
 
-  // Checkboxen max 1 selecteerbaar per type
-  ['verantwoordelijke','commissie','prioriteit'].forEach(name=>{
-    document.getElementsByName(name).forEach(cb=>{
-      cb.addEventListener('change', e=>{
-        if(e.target.checked){
-          document.getElementsByName(name).forEach(other=>{
-            if(other!==e.target) other.checked=false;
-          });
-        }
-      });
+  container.querySelectorAll('input[type=radio]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      selectedFilters[radio.name] = radio.value;
+      renderTaken();
     });
   });
 }
 
-// Toepassen filters
-document.getElementById('applyFiltersBtn').addEventListener('click', ()=>{
-  selectedFilters.verantwoordelijke = document.querySelector('input[name="verantwoordelijke"]:checked')?.value || '';
-  selectedFilters.commissie = document.querySelector('input[name="commissie"]:checked')?.value || '';
-  selectedFilters.prioriteit = document.querySelector('input[name="prioriteit"]:checked')?.value || '';
-  selectedFilters.verbergOk = document.getElementById('filterStatusOk').checked;
-  selectedFilters.alleenGemarkeerd = document.getElementById('filterGemarkeerd').checked;
-
-  renderTaken();
-});
-
-// Renderen taken
 function renderTaken() {
   const container = document.getElementById('tasks-container');
   container.innerHTML = '';
@@ -206,8 +170,6 @@ function renderTaken() {
     if(selectedFilters.verantwoordelijke && t.verantwoordelijke !== selectedFilters.verantwoordelijke) return false;
     if(selectedFilters.commissie && t.commissie !== selectedFilters.commissie) return false;
     if(selectedFilters.prioriteit && String(t.prioriteit) !== selectedFilters.prioriteit) return false;
-    if(selectedFilters.verbergOk && t.status === 'OK') return false;
-    if(selectedFilters.alleenGemarkeerd && !t.markeren) return false;
     return true;
   });
 
@@ -221,11 +183,6 @@ function renderTaken() {
 
     if(t.markeren) card.classList.add('card-markeren');
 
-    let statusClass = '';
-    if(t.status==='OK') statusClass='green-text text-darken-4';
-    else if(t.status==='Bezig') statusClass='orange-text text-darken-3';
-    else if(t.status==='NOK') statusClass='red-text text-darken-3';
-
     let priorClass = `prioriteit-${t.prioriteit || 1}`;
 
     card.innerHTML = `
@@ -235,41 +192,21 @@ function renderTaken() {
           <p><strong>Deadline:</strong> ${t.deadlineFormatted || '-'}<br>
           <span style="font-weight:bold;">${t.deadlineObj ? getDeadlineText(t.deadlineObj) : ''}</span></p>
 
+          <p><strong>Prioriteit:</strong></p>
+          ${[1,2,3,4,5].map(p => `<label><input type="radio" name="prioriteit-${t.taakId}" value="${p}" ${t.prioriteit==p?'checked':''}><span>${p}</span></label>`).join(' ')}
+
+          <p><strong>Status:</strong></p>
+          ${statusOptions.map(s => `<label><input type="radio" name="status-${t.taakId}" value="${s}" ${t.status===s?'checked':''}><span>${s}</span></label>`).join(' ')}
+
           <p>
             <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren ? 'checked' : ''}/>
+              <input type="checkbox" data-taakid="${t.taakId}" data-veld="markeren" ${t.markeren ? 'checked' : ''}/>
               <span>Markeren</span>
             </label>
           </p>
 
-          <p>
-            <strong>Prioriteit:</strong>
-            <select class="updateSelect ${priorClass}" data-taakid="${t.taakId}" data-veld="prioriteit">
-              <option value="1" ${t.prioriteit=="1"?"selected":""}>1</option>
-              <option value="2" ${t.prioriteit=="2"?"selected":""}>2</option>
-              <option value="3" ${t.prioriteit=="3"?"selected":""}>3</option>
-              <option value="4" ${t.prioriteit=="4"?"selected":""}>4</option>
-              <option value="5" ${t.prioriteit=="5"?"selected":""}>5</option>
-            </select>
-          </p>
-
-          <p>
-            <strong>Verantwoordelijke:</strong>
+          <p><strong>Verantwoordelijke:</strong>
             <input type="text" class="updateInput" data-taakid="${t.taakId}" data-veld="verantwoordelijke" value="${t.verantwoordelijke || ''}">
-          </p>
-
-          <p>
-            <strong>Status:</strong>
-            <select class="updateSelect status-select ${statusClass}" data-taakid="${t.taakId}" data-veld="status">
-              ${statusOptions.map(opt => `<option value="${opt}" ${t.status===opt?"selected":""}>${opt}</option>`).join('')}
-            </select>
-          </p>
-
-          <p>
-            <label>
-              <input type="checkbox" class="updateCheckbox" data-taakid="${t.taakId}" data-veld="verouderd" ${t.verouderd ? 'checked' : ''}/>
-              <span>Verouderd</span>
-            </label>
           </p>
 
           <p><strong>Commissie:</strong> ${t.commissie || '-'}</p>
@@ -283,33 +220,18 @@ function renderTaken() {
     container.appendChild(card);
   });
 
-  // Initialize select in cards
-  document.querySelectorAll('select.updateSelect').forEach(sel => {
-    const instance = M.FormSelect.getInstance(sel);
-    if(instance) instance.destroy();
-    M.FormSelect.init(sel);
-  });
-
-  // Checkbox en input eventlisteners
-  document.querySelectorAll('.updateCheckbox').forEach(cb => {
-    cb.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.checked));
-  });
-  document.querySelectorAll('.updateSelect').forEach(sel => {
-    sel.addEventListener('change', e => {
-      updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value);
-      if(sel.classList.contains('status-select')){
-        sel.classList.remove('red-text','orange-text','green-text','text-darken-4','text-darken-3');
-        if(e.target.value==='OK') sel.classList.add('green-text','text-darken-4');
-        else if(e.target.value==='Bezig') sel.classList.add('orange-text','text-darken-3');
-        else if(e.target.value==='NOK') sel.classList.add('red-text','text-darken-3');
-      }
-      if(sel.dataset.veld==='prioriteit'){
-        sel.className = `updateSelect prioriteit-${e.target.value}`;
-      }
+  // Event listeners voor radio buttons en checkboxes
+  filtered.forEach(t => {
+    document.querySelectorAll(`input[name=prioriteit-${t.taakId}]`).forEach(r => {
+      r.addEventListener('change', e => updateVeld(t.taakId, 'prioriteit', e.target.value));
     });
-  });
-  document.querySelectorAll('.updateInput').forEach(inp => {
-    inp.addEventListener('change', e => updateVeld(e.target.dataset.taakid, e.target.dataset.veld, e.target.value));
+    document.querySelectorAll(`input[name=status-${t.taakId}]`).forEach(r => {
+      r.addEventListener('change', e => updateVeld(t.taakId, 'status', e.target.value));
+    });
+    const cb = document.querySelector(`input[type=checkbox][data-taakid="${t.taakId}"][data-veld="markeren"]`);
+    if(cb) cb.addEventListener('change', e => updateVeld(t.taakId, 'markeren', e.target.checked));
+    const inp = document.querySelector(`input.updateInput[data-taakid="${t.taakId}"]`);
+    if(inp) inp.addEventListener('change', e => updateVeld(t.taakId, 'verantwoordelijke', e.target.value));
   });
 }
 
@@ -323,7 +245,6 @@ function updateVeld(taakId, veld, waarde) {
   .catch(err => console.error(err));
 }
 
-// Initialize modal
 document.addEventListener('DOMContentLoaded', function() {
   var elems = document.querySelectorAll('.modal');
   M.Modal.init(elems);
