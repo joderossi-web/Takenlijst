@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taken Versie 17 - Chiro Leopoldsburg</title>
+<title>Taken Versie 18 - Chiro Leopoldsburg</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -45,7 +45,7 @@ nav { background-color: #c62828; }
 </nav>
 
 <div class="container">
-<h4 class="center-align">Taken Versie 17</h4>
+<h4 class="center-align">Taken Versie 18</h4>
 
 <div class="filter-container row">
   <div class="input-field col s12 m3">
@@ -64,6 +64,12 @@ nav { background-color: #c62828; }
     <label>
       <input type="checkbox" id="filterStatusOk">
       <span>Verberg taken met status "OK"</span>
+    </label>
+  </div>
+  <div class="input-field col s12 m3">
+    <label>
+      <input type="checkbox" id="filterGemarkeerd">
+      <span>Alleen gemarkeerde taken</span>
     </label>
   </div>
 </div>
@@ -145,6 +151,7 @@ function vulFilters() {
   selectCom.addEventListener('change', renderTaken);
   selectPrio.addEventListener('change', renderTaken);
   document.getElementById('filterStatusOk').addEventListener('change', renderTaken);
+  document.getElementById('filterGemarkeerd').addEventListener('change', renderTaken);
 }
 
 function renderTaken() {
@@ -155,13 +162,15 @@ function renderTaken() {
   const selectedCom = document.getElementById('filterCommissie').value;
   const selectedPrio = document.getElementById('filterPrioriteit').value;
   const verbergOk = document.getElementById('filterStatusOk').checked;
+  const alleenGemarkeerd = document.getElementById('filterGemarkeerd').checked;
 
   const today = new Date();
   const filtered = takenData.filter(t => {
     if(selectedVer && t.verantwoordelijke !== selectedVer) return false;
     if(selectedCom && t.commissie !== selectedCom) return false;
-    if(selectedPrio && String(t.prioriteit) !== selectedPrio) return false; // gefixt: prioriteit-filter werkt nu
+    if(selectedPrio && String(t.prioriteit) !== selectedPrio) return false;
     if(verbergOk && t.status === 'OK') return false;
+    if(alleenGemarkeerd && !t.markeren) return false;
     return true;
   });
 
