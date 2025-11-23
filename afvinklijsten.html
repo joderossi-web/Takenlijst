@@ -1,1 +1,60 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Afvinklijsten</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background:#f7f7f7; }
+    h1 { text-align:center; }
+    .list { max-width:800px; margin:20px auto; display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+    .card { background:#fff; padding:16px 20px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,.12); width:220px; text-align:center;}
+    .card a { text-decoration:none; font-weight:600; color:#0066cc; display:block; }
+    .note { text-align:center; color:#666; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <h1>Afvinklijsten</h1>
+  <div class="list" id="masterList">Laden...</div>
+  <p class="note">Klik op een lijst om de details te bekijken.</p>
+
+  <script>
+    const SCRIPT_URL =
+      'https://script.google.com/macros/s/AKfycbyiYArRDtmborqb0_TmZ_XB1Ufp51O--KkeBhyUMk3ZlodfarThyJSCUMVuCcfz4sEM_Q/exec';
+
+    function renderMaster(data) {
+      const container = document.getElementById('masterList');
+      container.innerHTML = '';
+      if (!data || !data.master) {
+        container.textContent = 'Geen items gevonden of fout bij laden.';
+        return;
+      }
+
+      data.master.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const a = document.createElement('a');
+        a.href = 'activiteitendetail.html?sheet=' + encodeURIComponent(item.sheetName);
+        a.textContent = item.label || item.sheetName;
+        card.appendChild(a);
+        container.appendChild(card);
+      });
+
+      if (data.master.length === 0) {
+        container.textContent = 'Geen links in "Master" tab gevonden.';
+      }
+    }
+
+    (function loadMaster() {
+      const s = document.createElement('script');
+      s.src = SCRIPT_URL + '?action=master&callback=renderMaster&_=' + Date.now();
+      s.onerror = function() {
+        document.getElementById('masterList').textContent =
+          'Fout bij laden. Controleer SCRIPT_URL en permissies.';
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
 
